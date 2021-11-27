@@ -1,0 +1,12 @@
+{
+    "suggest.enablePreview": true,
+    "python.jediEnabled": false,
+    "python.jediPath": "/Users/joellidin/Library/Python/3.7/lib/python/site-packages",
+    "python.linting.flake8Enabled": true,
+    "python.linting.pylintEnabled": false,
+    "suggest.timeout": 5000,
+    "suggest.triggerAfterInsertEnter": true,
+    "suggest.noselect": false,
+    "python.pythonPath": "/usr/local/opt/python/libexec/bin/python",
+    "python.analysis.disabled": ["unresolved-import"]
+}
