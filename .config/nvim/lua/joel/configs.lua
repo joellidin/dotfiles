@@ -1,10 +1,11 @@
+local opt = vim.opt
 -- Set undodir
-vim.o.undodir = "/Users/joellidin/.vim/undo-dir"
-vim.o.undofile = true
+opt.undodir = "/Users/joellidin/.vim/undo-dir"
+opt.undofile = true
 
 -- Set swapfile
-vim.o.swapfile = true
-vim.o.dir = "/Users/joellidin/.vim/tmp/"
+opt.swapfile = true
+opt.dir = "/Users/joellidin/.vim/tmp/"
 
 -- nvim-web-devicons: https://www.nerdfonts.com/cheat-sheet →     
 --require("nvim-web-devicons").setup {

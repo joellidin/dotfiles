@@ -23,7 +23,7 @@ local set_prompt_to_entry_value = function(prompt_bufnr)
   action_state.get_current_picker(prompt_bufnr):reset_prompt(entry.ordinal)
 end
 
-local _ = pcall(require, "nvim-nonicons")
+require "nvim-nonicons"
 
 local M = {}
 

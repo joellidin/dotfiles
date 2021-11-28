@@ -73,7 +73,7 @@ cmp.setup({
       c = cmp.mapping.close(),
     }),
     ['<C-y>'] = cmp.config.disable, -- Specify `cmp.config.disable` if you want to remove the default `<C-y>` mapping.
-    ['<CR>'] = cmp.mapping.confirm { 
+    ['<CR>'] = cmp.mapping.confirm {
 	    behavior = cmp.ConfirmBehavior.Insert,
 	    select = true,
     },

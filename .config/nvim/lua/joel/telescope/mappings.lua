@@ -44,7 +44,7 @@ map_tele("<space>f/", "grep_last_search", {
 
 -- Files
 map_tele("<space>ft", "git_files")
-map_tele("<space>fg", "live_grep") -- AMAZING
+-- map_tele("<space>fg", "live_grep") -- AMAZING
 map_tele("<space>fg", "multi_rg") -- what does this do?
 -- map_tele("<space>fo", "oldfiles")
 map_tele("<space>fd", "fd") -- similar to file_browser
