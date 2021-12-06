@@ -1,81 +1,81 @@
 -- Setup nvim-cmp.
-local cmp = require'cmp'
+local cmp = require "cmp"
 
-local lspkind = require('lspkind')
-lspkind.init({
-  symbol_map = {
-    -- Class = '🅒',
-    Class = '∴',
-    -- Color = '☀',
-    -- Color = '⛭',
-    Color = '🖌',
-    -- Constant = 'π',
-    Constant = '𝜋',
-    Constructor = '⬡',
-    -- Constructor = '⌬',
-    -- Constructor = '⎔',
-    -- Constructor = '⚙',
-    -- Constructor = 'ᲃ',
-    Enum = '',
-    EnumMember = '',
-    Event = '',
-    -- Field = '→',
-    -- Field = '∴',
-    Field = '🠶',
-    File = '',
-    Folder = '',
-    Function = 'ƒ',
-    -- Function = 'λ',
-    Interface = '',
-    Keyword = '🗝',
-    Method = '𝘮',
-    -- Method = 'λ',
-    Module = '📦',
-    Operator = '≠',
-    -- Operator = '±',
-    -- Property = '::',
-    Property = '∷',
-    -- Reference = '⌦',
-    Reference = '⊷',
-    -- Reference = '⊶',
-    -- Reference = '⊸',
-    -- Snippet = '',
-    -- Snippet = '↲',
-    -- Snippet = '♢',
-    -- Snippet = '<>',
-    Snippet = '{}',
-    Struct = '',
-    -- Text = '#',
-    -- Text = '♯',
-    -- Text = 'ⅵ',
-    -- Text = "¶",
-    -- Text = "𝒯",
-    -- Text = "𝓣",
-    Text = "𐄗",
-    TypeParameter = '×',
-    Unit = '()',
-    -- Value           =
-    -- Variable = '𝛼',
-    -- Variable = 'χ',
-    Variable = '𝓧',
-    -- Variable = '𝛸',
-    -- Variable = 'α',
-    -- Variable = '≔',
-  }
-})
+local lspkind = require "lspkind"
+-- lspkind.init({
+--   symbol_map = {
+--     -- Class = '🅒',
+--     Class = '∴',
+--     -- Color = '☀',
+--     -- Color = '⛭',
+--     Color = '🖌',
+--     -- Constant = 'π',
+--     Constant = '𝜋',
+--     Constructor = '⬡',
+--     -- Constructor = '⌬',
+--     -- Constructor = '⎔',
+--     -- Constructor = '⚙',
+--     -- Constructor = 'ᲃ',
+--     Enum = '',
+--     EnumMember = '',
+--     Event = '',
+--     -- Field = '→',
+--     -- Field = '∴',
+--     Field = '🠶',
+--     File = '',
+--     Folder = '',
+--     Function = 'ƒ',
+--     -- Function = 'λ',
+--     Interface = '',
+--     Keyword = '🗝',
+--     Method = '𝘮',
+--     -- Method = 'λ',
+--     Module = '📦',
+--     Operator = '≠',
+--     -- Operator = '±',
+--     -- Property = '::',
+--     Property = '∷',
+--     -- Reference = '⌦',
+--     Reference = '⊷',
+--     -- Reference = '⊶',
+--     -- Reference = '⊸',
+--     -- Snippet = '',
+--     -- Snippet = '↲',
+--     -- Snippet = '♢',
+--     -- Snippet = '<>',
+--     Snippet = '{}',
+--     Struct = '',
+--     -- Text = '#',
+--     -- Text = '♯',
+--     -- Text = 'ⅵ',
+--     -- Text = "¶",
+--     -- Text = "𝒯",
+--     -- Text = "𝓣",
+--     Text = "𐄗",
+--     TypeParameter = '×',
+--     Unit = '()',
+--     -- Value           =
+--     -- Variable = '𝛼',
+--     -- Variable = 'χ',
+--     Variable = '𝓧',
+--     -- Variable = '𝛸',
+--     -- Variable = 'α',
+--     -- Variable = '≔',
+--   }
+-- })
 
-cmp.setup({
+cmp.setup {
   mapping = {
-    ['<C-d>'] = cmp.mapping.scroll_docs(-4),
-    ['<C-f>'] = cmp.mapping.scroll_docs(4),
-    ['<C-e>'] = cmp.mapping({
+    ["<C-d>"] = cmp.mapping.scroll_docs(-4),
+    ["<C-f>"] = cmp.mapping.scroll_docs(4),
+    ["<C-e>"] = cmp.mapping {
       i = cmp.mapping.abort(),
       c = cmp.mapping.close(),
-    }),
-    ['<C-y>'] = cmp.config.disable, -- Specify `cmp.config.disable` if you want to remove the default `<C-y>` mapping.
-    ['<CR>'] = cmp.mapping.confirm {
-	    behavior = cmp.ConfirmBehavior.Insert,
-	    select = true,
+    },
+    ["<C-y>"] = cmp.config.disable, -- Specify `cmp.config.disable` if you want to remove the default `<C-y>` mapping.
+    ["<CR>"] = cmp.mapping.confirm {
+      behavior = cmp.ConfirmBehavior.Insert,
+      select = true,
     },
     ["<C-Space>"] = cmp.mapping {
       i = cmp.mapping.complete(),
@@ -94,17 +94,17 @@ cmp.setup({
   },
 
   sources = {
-    { name = 'nvim_lua' },
-    { name = 'nvim_lsp' },
-    { name = 'path' },
-    { name = 'luasnip' }, -- For luasnip users.
-    { name = 'buffer', keyword_length = 5 },
+    { name = "nvim_lua" },
+    { name = "nvim_lsp" },
+    { name = "path" },
+    { name = "luasnip" }, -- For luasnip users.
+    { name = "buffer", keyword_length = 5 },
   },
 
   snippet = {
     -- REQUIRED - you must specify a snippet engine
     expand = function(args)
-      require('luasnip').lsp_expand(args.body) -- For `luasnip` users.
+      require("luasnip").lsp_expand(args.body) -- For `luasnip` users.
     end,
   },
 
@@ -128,7 +128,7 @@ cmp.setup({
     native_menu = false,
     ghost_text = true,
   },
-})
+}
 
 cmp.setup.cmdline("/", {
   completion = {
@@ -179,4 +179,3 @@ Group.new("CmpItemAbbrDeprecated", g.Error)
 Group.new("CmpItemAbbrMatchFuzzy", g.CmpItemAbbr.fg:dark(), nil, s.italic)
 Group.new("CmpItemKind", g.Special)
 Group.new("CmpItemMenu", g.NonText)
-

@@ -14,11 +14,21 @@ packer.startup(function(use)
     "nvim-treesitter/nvim-treesitter",
     run = ":TSUpdate",
   }
+  use "nvim-treesitter/nvim-treesitter-textobjects"
+  use "JoosepAlviste/nvim-ts-context-commentstring"
+  use "nvim-treesitter/playground"
+  use {
+    "mfussenegger/nvim-ts-hint-textobject",
+    config = function()
+      vim.cmd [[omap     <silent> m :<C-U>lua require('tsht').nodes()<CR>]]
+      vim.cmd [[vnoremap <silent> m :lua require('tsht').nodes()<CR>]]
+    end,
+  }
 
   -- LSP
   use "neovim/nvim-lspconfig"
   -- use 'tamago324/nlsp-settings.nvim' -- Does not work
-  use "L3MON4D3/LuaSnip" -- Snippets plugin
+  use { "L3MON4D3/LuaSnip", enable = false } -- Snippets plugin
 
   -- This is a requirement, which implements some useful window management
   --   items for neovim
@@ -44,6 +54,7 @@ packer.startup(function(use)
   use { -- Search on the web from telescope
     "nvim-telescope/telescope-arecibo.nvim",
     rocks = { "openssl", "lua-http-parser" },
+    enable = false,
   }
 
   -- Nice plugin to remember what you have copied
@@ -56,6 +67,17 @@ packer.startup(function(use)
 
   -- Git
   use "TimUntersberger/neogit"
+  use "sindrets/diffview.nvim"
+  use "rhysd/committia.vim"
+  -- Floating windows are awesome :)
+  use {
+    "rhysd/git-messenger.vim",
+    keys = "<Plug>(git-messenger)",
+  }
+  use "ruifm/gitlinker.nvim"
+
+  -- Async signs!
+  use "lewis6991/gitsigns.nvim"
 
   -- Github integration
   if vim.fn.executable "gh" == 1 then
@@ -92,4 +114,25 @@ packer.startup(function(use)
 
   -- Notify
   use "rcarriga/nvim-notify"
+
+  -- Comment
+  use {
+    "numToStr/Comment.nvim",
+    config = function()
+      require("Comment").setup()
+    end,
+  }
+
+  -- Statusline
+  use "nvim-lualine/lualine.nvim"
+  use "nvim-lua/lsp-status.nvim" -- Research how to use this
+
+  -- Markdown
+  use "iamcco/markdown-preview.nvim"
+
+  -- Harpoon for easy navigating in project
+  use "ThePrimeagen/harpoon"
+
+  -- Astranauta
+  use "tjdevries/astronauta.nvim"
 end)
