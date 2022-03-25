@@ -1,0 +1,19 @@
+[credential "https://github.com"]
+	helper = 
+	helper = !/usr/bin/gh auth git-credential
+[user]
+	email = joel.lidin@volvocars.com
+	name = Joel Lidin
+	signingkey = 1366F73798B494AB
+[commit]
+	gpgsign = true
+[core]
+    pager = delta
+[interactive]
+    diffFilter = delta --color-only
+[delta]
+    line-numbers = true
+    syntax-theme = gruvbox-dark
+    side-by-side = false
+    file-modified-label = modified
+    navigate = true
