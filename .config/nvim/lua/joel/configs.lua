@@ -73,7 +73,7 @@ opt.softtabstop = 4
 opt.expandtab = true
 
 -- undo- and swapfile
-opt.undodir = "/Users/joellidin/.vim/undo-dir" -- Need to change
+-- opt.undodir = "/Users/joellidin/.vim/undo-dir" -- Need to change
 opt.undofile = true
-opt.dir = "/Users/joellidin/.vim/tmp/" -- Need to change
+-- opt.dir = "/Users/joellidin/.vim/tmp/" -- Need to change
 opt.swapfile = true

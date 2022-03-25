@@ -23,7 +23,7 @@ local set_prompt_to_entry_value = function(prompt_bufnr)
   action_state.get_current_picker(prompt_bufnr):reset_prompt(entry.ordinal)
 end
 
-require "nvim-nonicons"
+local _ = pcall(require, "nvim-nonicons")
 
 local M = {}
 
@@ -283,7 +283,7 @@ function M.file_browser()
     end,
   }
 
-  require("telescope.builtin").file_browser(opts)
+  require("telescope").extensions.file_browser.file_browser(opts)
 end
 
 function M.git_status()

@@ -30,9 +30,6 @@
 --     }
 --   }
 -- }
-
-local nvim_lsp = require "lspconfig"
-
 -- Use an on_attach function to only map the following keys
 -- after the language server attaches to the current buffer
 local on_attach = function(client, bufnr)
@@ -62,10 +59,10 @@ local on_attach = function(client, bufnr)
   buf_set_keymap("n", "<space>rn", "<cmd>lua vim.lsp.buf.rename()<CR>", opts)
   buf_set_keymap("n", "<space>ca", "<cmd>lua vim.lsp.buf.code_action()<CR>", opts)
   buf_set_keymap("n", "gr", "<cmd>lua vim.lsp.buf.references()<CR>", opts)
-  buf_set_keymap("n", "<space>e", "<cmd>lua vim.lsp.diagnostic.show_line_diagnostics()<CR>", opts)
-  buf_set_keymap("n", "[d", "<cmd>lua vim.lsp.diagnostic.goto_prev()<CR>", opts)
-  buf_set_keymap("n", "]d", "<cmd>lua vim.lsp.diagnostic.goto_next()<CR>", opts)
-  buf_set_keymap("n", "<space>q", "<cmd>lua vim.lsp.diagnostic.set_loclist()<CR>", opts)
+  buf_set_keymap("n", "<space>e", "<cmd>lua vim.diagnostic.open_float()<CR>", opts)
+  buf_set_keymap("n", "[d", "<cmd>lua vim.diagnostic.goto_prev()<CR>", opts)
+  buf_set_keymap("n", "]d", "<cmd>lua vim.diagnostic.goto_next()<CR>", opts)
+  buf_set_keymap("n", "<space>q", "<cmd>lua vim.diagnostic.setloclist()<CR>", opts)
   buf_set_keymap("n", "<space>f", "<cmd>lua vim.lsp.buf.formatting()<CR>", opts)
 end
 
@@ -80,35 +77,64 @@ lspSymbol("Warning", "")
 
 -- Use a loop to conveniently call 'setup' on multiple servers and
 -- map buffer local keybindings when the language server attaches
-local servers = { "pyright", "rust_analyzer", "tsserver", "jsonls" }
-for _, lsp in ipairs(servers) do
-  nvim_lsp[lsp].setup {
+local lsp_installer = require "nvim-lsp-installer"
+
+-- Register a handler that will be called for each installed server when it's ready (i.e. when installation is finished
+-- or if the server is already installed).
+lsp_installer.on_server_ready(function(server)
+  local opts = {
     on_attach = on_attach,
     flags = {
       debounce_text_changes = 150,
     },
   }
+
+  -- (optional) Customize the options passed to the server
+  -- if server.name == "tsserver" then
+  --     opts.root_dir = function() ... end
+  -- end
+
+  -- This setup() function will take the provided server configuration and decorate it with the necessary properties
+  -- before passing it onwards to lspconfig.
+  -- Refer to https://github.com/neovim/nvim-lspconfig/blob/master/doc/server_configurations.md
+  server:setup(opts)
+end)
+
+local custom_init = function(client)
+  client.config.flags = client.config.flags or {}
+  client.config.flags.allow_incremental_sync = true
 end
 
+local nvim_lsp = require "lspconfig"
+-- local servers = { "pyright", "rust_analyzer", "tsserver", "jsonls" }
+-- for _, lsp in pairs(servers) do
+--   nvim_lsp[lsp].setup {
+--     on_attach = on_attach,
+--     flags = {
+--       debounce_text_changes = 150,
+--     },
+--   }
+-- end
+
 -- setup for flake8
-local flake8 = {
-  lintCommand = "flake8 --stdin-display-name ${INPUT} -",
-  lintStdin = true,
-  lintFormats = { "%f=%l:%c: %m" },
-}
-require("lspconfig").efm.setup {
-  init_options = { documentFormatting = true },
-  settings = {
-    rootMarkers = { ".git/" },
-    languages = {
-      python = {
-        { flake8 },
-      },
-    },
-  },
-  filetypes = { "python" },
-  on_attach = on_attach,
-}
+-- local flake8 = {
+--   lintCommand = "flake8 --stdin-display-name ${INPUT} -",
+--   lintStdin = true,
+--   lintFormats = { "%f=%l:%c: %m" },
+-- }
+-- require("lspconfig").efm.setup {
+--   init_options = { documentFormatting = true },
+--   settings = {
+--     rootMarkers = { ".git/" },
+--     languages = {
+--       python = {
+--         { flake8 },
+--       },
+--     },
+--   },
+--   filetypes = { "python" },
+--   on_attach = on_attach,
+-- }
 
 local capabilities = vim.lsp.protocol.make_client_capabilities()
 capabilities.textDocument.completion.completionItem.snippetSupport = true
@@ -118,48 +144,20 @@ require("lspconfig").jsonls.setup {
 }
 
 -- Lua lsp
-local system_name
-if vim.fn.has "mac" == 1 then
-  system_name = "macOS"
-elseif vim.fn.has "unix" == 1 then
-  system_name = "Linux"
-elseif vim.fn.has "win32" == 1 then
-  system_name = "Windows"
-else
-  print "Unsupported system for sumneko"
-end
-
--- set the path to the sumneko installation; if you previously installed via the now deprecated :LspInstall, use
-local sumneko_root_path = "/Users/joellidin/lua-language-server/"
-local sumneko_binary = sumneko_root_path .. "/bin/" .. system_name .. "/lua-language-server"
-
-local runtime_path = vim.split(package.path, ";")
-table.insert(runtime_path, "lua/?.lua")
-table.insert(runtime_path, "lua/?/init.lua")
-
-require("lspconfig").sumneko_lua.setup {
-  cmd = { sumneko_binary, "-E", sumneko_root_path .. "/main.lua" },
-  settings = {
-    Lua = {
-      runtime = {
-        -- Tell the language server which version of Lua you're using (most likely LuaJIT in the case of Neovim)
-        version = "LuaJIT",
-        -- Setup your lua path
-        path = runtime_path,
-      },
-      diagnostics = {
-        -- Get the language server to recognize the `vim` global
-        globals = { "vim" },
-      },
-      workspace = {
-        -- Make the server aware of Neovim runtime files
-        library = vim.api.nvim_get_runtime_file("", true),
-      },
-      -- Do not send telemetry data containing a randomized but unique identifier
-      telemetry = {
-        enable = false,
-      },
-    },
-  },
+_ = require("nlua.lsp.nvim").setup(nvim_lsp, {
+  on_init = custom_init,
   on_attach = on_attach,
-}
+  capabilities = capabilities,
+
+  globals = {
+    -- Colorbuddy
+    "Color",
+    "c",
+    "Group",
+    "g",
+    "s",
+
+    -- Custom
+    "RELOAD",
+  },
+})

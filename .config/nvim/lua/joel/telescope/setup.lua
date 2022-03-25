@@ -89,6 +89,11 @@ require("telescope").setup {
     file_previewer = require("telescope.previewers").vim_buffer_cat.new,
     grep_previewer = require("telescope.previewers").vim_buffer_vimgrep.new,
     qflist_previewer = require("telescope.previewers").vim_buffer_qflist.new,
+
+    history = {
+      path = vim.fn.stdpath "data" .. "/databases/telescope_history.sqlite3",
+      limit = 100,
+    },
   },
 
   extensions = {
@@ -136,18 +141,20 @@ require("telescope").setup {
 -- pcall(require("telescope").load_extension, "arecibo")
 -- require("telescope").load_extension "flutter"
 -- require("telescope").load_extension "dap"
-require("telescope").load_extension "notify"
+_ = require("telescope").load_extension "notify"
+_ = require("telescope").load_extension "file_browser"
 
 -- pcall(require("telescope").load_extension, "fzy_native")
-require("telescope").load_extension "fzf"
+_ = require("telescope").load_extension "fzf"
+_ = require("telescope").load_extension "frecency"
+_ = require("telescope").load_extension "smart_history"
 
 if vim.fn.executable "gh" == 1 then
   pcall(require("telescope").load_extension, "gh")
   pcall(require("telescope").load_extension, "octo")
 end
-require("telescope").load_extension "neoclip"
+_ = require("telescope").load_extension "neoclip"
 pcall(require("telescope").load_extension, "git_worktree")
-
 
 -- LOADED_FRECENCY = LOADED_FRECENCY or true
 -- local has_frecency = true

@@ -1,4 +1,6 @@
-local nnoremap = vim.keymap.nnoremap
+local nnoremap = function(tbl)
+  vim.keymap.set("n", tbl[1], tbl[2], { remap = false })
+end
 
 local ok, harpoon = pcall(require, "harpoon")
 if not ok then
