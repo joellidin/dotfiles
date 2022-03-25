@@ -1,0 +1,159 @@
+# i3blocks config file
+#
+# Please see man i3blocks for a complete reference!
+# The man page is also hosted at http://vivien.github.io/i3blocks
+#
+# List of valid properties:
+#
+# align
+# color
+# command
+# full_text
+# instance
+# interval
+# label
+# min_width
+# name
+# separator
+# separator_block_width
+# short_text
+# signal
+# urgent
+
+# Global properties
+#
+# The top properties below are applied to every block, but can be overridden.
+# Each block command defaults to the script name to avoid boilerplate.
+# Change $SCRIPT_DIR to the location of your scripts!
+command=$HOME/.local/bin/$BLOCK_NAME
+separator_block_width=15
+markup=none
+
+# Volume indicator
+#
+# The first parameter sets the step (and units to display)
+# The second parameter overrides the mixer selection
+# See the script for details.
+
+# [memory]
+# # command=$SCRIPT_DIR/memory
+# label=Memory
+# interval=30
+[screenrecord]
+command=cat /tmp/recordingicon
+signal=9
+interval=once
+
+[i3-keyboard-layout]
+label=
+interval=once
+markup=pango
+signal=7
+command=$HOME/.local/bin/i3-keyboard-layout i3block
+
+# [crypto]
+# label=
+# interval=150
+# markup=pango
+# command=$HOME/.local/bin/crypto2
+
+# [crypto]
+# label=
+# markup=pango
+# interval=150
+# command=$HOME/.local/bin/crypto2 ETH
+
+
+[volume]
+#label=♪
+# label=Volume
+interval=once
+signal=10
+DEFAULT_COLOR="#bdae93"
+MUTED_COLOR="#f7555E"
+#STEP=5%
+
+
+[custom-time]
+interval=5
+
+[battery]
+command=$HOME/.local/bin/battery
+interval=5
+markup=pango
+# min_width=bat: ■■■■■
+min_width=bat:
+# Discharging colors low to high
+#C1=#FF0027
+#C2=#FF3B05
+#C3=#FFB923
+#C4=#FFD000
+#C5=#E4FF00
+#C6=#ADFF00
+#C7=#6DFF00
+#C8=#10BA00
+#CHARGING_COLOR=#00AFE3
+#FULL_COLOR=#FFFFFF
+#AC_COLOR=#535353
+
+[shutdown_menu]
+full_text= 
+# If you are using FontAwesome, we recommend the power-off icon:
+# http://fontawesome.io/icon/power-off/
+command=$HOME/.local/bin/shutdown_menu
+# FG_COLOR=#3c3836
+# BG_COLOR=#d5c4a1
+# HLFG_COLOR=#d5c4a1
+# HLBG_COLOR=#3c3836
+# BORDER_COLOR=#222222
+ROFI_TEXT=Options
+ROFI_OPTIONS=-width 15 -location 3
+#ZENITY_TITLE=Menu
+#ZENITY_TEXT=Action:
+#ZENITY_OPTIONS=--column= --hide-header
+#ENABLE_CONFIRMATIONS=true (must be true or false)
+#LAUNCHER=rofi (must be rofi or zenity)
+LOCKSCRIPT=$HOME/.local/bin/i3-lock-custom
+
+# Generic media player support
+#
+# This displays "ARTIST - SONG" if a music is playing.
+# Supported players are: spotify, vlc, audacious, xmms2, mplayer, and others.
+#[mediaplayer]
+#instance=spotify
+#interval=5
+#signal=10
+
+# OpenVPN support
+#
+# Support multiple VPN, with colors.
+#[openvpn]
+#interval=20
+
+# Temperature
+#
+# Support multiple chips, though lm-sensors.
+# The script may be called with -w and -c switches to specify thresholds,
+# see the script for details.
+#[temperature]
+#label=TEMP
+#interval=10
+
+# Key indicators
+#
+# Add the following bindings to i3 config file:
+#
+# bindsym --release Caps_Lock exec pkill -SIGRTMIN+11 i3blocks
+# bindsym --release Num_Lock  exec pkill -SIGRTMIN+11 i3blocks
+#[keyindicator]
+#KEY=CAPS
+#markup=pango
+#interval=once
+#signal=11
+
+#[keyindicator]
+#KEY=NUM
+#markup=pango
+#interval=once
+#signal=11
+
