@@ -33,6 +33,8 @@ opt.splitright = true -- Prefer windows splitting to the right
 opt.splitbelow = true -- Prefer windows splitting to the bottom
 opt.updatetime = 1000 -- Make updates happen faster
 opt.scrolloff = 10 -- Make it so there are always ten lines below my cursor
+opt.laststatus = 3 -- Have a global statusline
+vim.cmd "highlight WinSeparator guibg=None" -- Remove bg color for win seperator
 
 opt.breakindent = true
 opt.showbreak = string.rep(" ", 3) -- Make it so that long lines wrap smartly
