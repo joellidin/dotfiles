@@ -1,0 +1,1 @@
+/home/jlidin/.config/shell/profile
