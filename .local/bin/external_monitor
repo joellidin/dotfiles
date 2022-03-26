@@ -1,0 +1,68 @@
+#!/bin/bash
+# xrandr | grep -q "DVI-I-2-1 connected"
+# ST=$?
+
+# if [ $ST -eq 0 ]; then
+#     xrandr --output eDP-1 --mode 1920x1080 --output DVI-I-2-1 --auto --primary --right-of eDP-1
+# else
+#     xrandr --output eDP-1 --mode 1920x1080 --primary
+# fi
+
+monitor_home() {
+    monitors=($(query))
+    if [ ! -z "$2" ] && [ "$2" = "right" ]; then
+      xrandr --output ${monitors[-1]} --mode 2560x1440 --left-of eDP-1
+    else
+      xrandr --output ${monitors[-1]} --mode 2560x1440 --right-of eDP-1
+    fi
+}
+
+office_one_monitor() {
+    monitors=($(query))
+    if [ ! -z "$2" ] && [ "$2" = "left" ]; then
+      xrandr --output eDP-1 --mode 1920x1080 --output ${monitors[-1]} --auto --primary --right-of eDP-1
+    else
+      xrandr --output eDP-1 --mode 1920x1080 --output ${monitors[-1]} --auto --primary --left-of eDP-1
+    fi
+}
+
+office_two_monitors() {
+    monitors=($(query))
+    if [ "$3" = "rotate" ]; then
+      xrandr --output ${monitors[-1]} --auto --right-of ${monitors[-2]}
+      if [ ! -z "$2" ] && [ "$2" = "left" ]; then
+        xrandr --output eDP-1 --auto --left-of ${monitors[-2]}
+        # xrandr --output eDP-1 --mode 1920x1080 --output DVI-I-3-2 --auto --primary --left-of eDP-1
+      elif [ ! -z "$2" ] && [ "$2" = "off" ]; then
+        xrandr --output eDP-1 --off
+      else
+        xrandr --output eDP-1 --auto --right-of ${monitors[-1]}
+        # xrandr --output eDP-1 --mode 1920x1080 --output DVI-I-3-2 --auto --primary --right-of eDP-1
+      fi
+    else
+      xrandr --output ${monitors[-2]} --auto --right-of ${monitors[-1]}
+      if [ ! -z "$2" ] && [ "$2" = "left" ]; then
+        xrandr --output eDP-1 --auto --left-of ${monitors[-1]}
+        # xrandr --output eDP-1 --mode 1920x1080 --output DVI-I-3-2 --auto --primary --left-of eDP-1
+      elif [ ! -z "$2" ] && [ "$2" = "off" ]; then
+        xrandr --output eDP-1 --off
+      else
+        xrandr --output eDP-1 --auto --right-of ${monitors[-2]}
+        # xrandr --output eDP-1 --mode 1920x1080 --output DVI-I-3-2 --auto --primary --right-of eDP-1
+      fi
+    fi
+}
+
+query() {
+  xrandr -q | grep -w connected | cut -d' ' -f1
+}
+
+xrandr --auto
+
+case "$1" in
+    home) monitor_home $@;;
+    one_monitor) office_one_monitor $@;;
+    two_monitors) office_two_monitors $@;;
+    query | q) query;;
+    *) ;;
+esac

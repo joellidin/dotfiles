@@ -1,0 +1,23 @@
+#!/bin/sh
+
+# Verbosity and settings that you pretty much just always are going to want.
+alias \
+	cp="cp -iv" \
+	mv="mv -iv" \
+	rm="rm -vI" \
+	bc="bc -ql" \
+	mkd="mkdir -pv" \
+
+# Colorize commands when possible.
+alias \
+	ls="ls -hN --color=auto --group-directories-first" \
+	grep="grep --color=auto" \
+
+# Allow pritunl to work on linux
+alias remove-proxy="unset http_proxy && unset HTTP_PROXY && unset https_proxy && unset HTTPS_PROXY"
+alias c4vpn="remove-proxy && pritunl-client-electron </dev/null &> /dev/null &"
+
+alias v="nvim"
+alias nv="nvim"
+
+alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'

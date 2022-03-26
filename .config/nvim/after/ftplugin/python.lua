@@ -1,4 +1,3 @@
-require "notify" "LOADED PYTHON FTPLUGIN"
 local opt = vim.opt
 opt.expandtab = true
 opt.smarttab = true

@@ -33,6 +33,8 @@ opt.splitright = true -- Prefer windows splitting to the right
 opt.splitbelow = true -- Prefer windows splitting to the bottom
 opt.updatetime = 1000 -- Make updates happen faster
 opt.scrolloff = 10 -- Make it so there are always ten lines below my cursor
+opt.laststatus = 3 -- Have a global statusline
+vim.cmd "highlight WinSeparator guibg=None" -- Remove bg color for win seperator
 
 opt.breakindent = true
 opt.showbreak = string.rep(" ", 3) -- Make it so that long lines wrap smartly
@@ -73,7 +75,7 @@ opt.softtabstop = 4
 opt.expandtab = true
 
 -- undo- and swapfile
-opt.undodir = "/Users/joellidin/.vim/undo-dir" -- Need to change
+-- opt.undodir = "/Users/joellidin/.vim/undo-dir" -- Need to change
 opt.undofile = true
-opt.dir = "/Users/joellidin/.vim/tmp/" -- Need to change
+-- opt.dir = "/Users/joellidin/.vim/tmp/" -- Need to change
 opt.swapfile = true

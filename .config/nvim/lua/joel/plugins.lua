@@ -27,11 +27,13 @@ packer.startup(function(use)
 
   -- LSP
   use "neovim/nvim-lspconfig"
+  use "williamboman/nvim-lsp-installer"
   -- use 'tamago324/nlsp-settings.nvim' -- Does not work
   use { "L3MON4D3/LuaSnip", enable = false } -- Snippets plugin
+  use "tjdevries/nlua.nvim" -- Lua development from tjdevries
 
   -- This is a requirement, which implements some useful window management
-  --   items for neovim
+  -- items for neovim
   use "nvim-lua/plenary.nvim"
   use "nvim-lua/popup.nvim"
 
@@ -42,20 +44,18 @@ packer.startup(function(use)
   use "nvim-telescope/telescope-fzy-native.nvim"
   use { "nvim-telescope/telescope-fzf-native.nvim", run = "make" }
   use "nvim-telescope/telescope-hop.nvim" -- Unsure about this one
+  use { "nvim-telescope/telescope-file-browser.nvim" } -- Telescope file browser
   use "nvim-telescope/telescope-github.nvim" -- Need github-cli
   use "nvim-telescope/telescope-symbols.nvim"
-  use { -- Sort files in how often you open them
-    "nvim-telescope/telescope-frecency.nvim",
-    config = function()
-      require("telescope").load_extension "frecency"
-    end,
-    requires = { "tami5/sqlite.lua" },
-  }
-  use { -- Search on the web from telescope
-    "nvim-telescope/telescope-arecibo.nvim",
-    rocks = { "openssl", "lua-http-parser" },
-    enable = false,
-  }
+  use { "nvim-telescope/telescope-smart-history.nvim" }
+
+  use { "tami5/sqlite.lua", rocks = { "luv" } } -- Required for frecency
+  use { "nvim-telescope/telescope-frecency.nvim" }
+  -- use { -- Search on the web from telescope
+  --   "nvim-telescope/telescope-arecibo.nvim",
+  --   rocks = { "openssl", "lua-http-parser" },
+  --   enable = false,
+  -- }
 
   -- Nice plugin to remember what you have copied
   use {
@@ -66,7 +66,7 @@ packer.startup(function(use)
   }
 
   -- Git
-  use "TimUntersberger/neogit"
+  use "/home/jlidin/plugins/neogit"
   use "sindrets/diffview.nvim"
   use "rhysd/committia.vim"
   -- Floating windows are awesome :)
@@ -109,7 +109,7 @@ packer.startup(function(use)
   }
 
   -- Icons
-  use "yamatsum/nvim-nonicons"
+  use { "yamatsum/nvim-nonicons", disable = true }
   use "kyazdani42/nvim-web-devicons"
 
   -- Notify
@@ -132,7 +132,4 @@ packer.startup(function(use)
 
   -- Harpoon for easy navigating in project
   use "ThePrimeagen/harpoon"
-
-  -- Astranauta
-  use "tjdevries/astronauta.nvim"
 end)

@@ -94,6 +94,7 @@ cmp.setup {
   },
 
   sources = {
+    { name = "gh_issues" },
     { name = "nvim_lua" },
     { name = "nvim_lsp" },
     { name = "path" },
