@@ -3,6 +3,7 @@ inoremap <Down>   <C-o>:echom "--> j <-- "<CR>
 inoremap <Right>  <C-o>:echom "--> l <-- "<CR>
 inoremap <Left>   <C-o>:echom "--> h <-- "<CR>
 
+
 " Helpful delete/change into blackhole buffer
 nmap <leader>d "_d
 nmap <leader>c "_c
@@ -32,6 +33,8 @@ nnoremap n nzzzv
 nnoremap N Nzzzv
 nnoremap J mzJ`z
 
-vnoremap J :m '>+1<CR>gv=gv
-vnoremap K :m '<-2<CR>gv=gv
+vnoremap J :move '>+1<CR>gv=gv
+vnoremap K :move '<-2<CR>gv=gv
 
+nnoremap ]q :cnext<CR>
+nnoremap [q :cprev<CR>

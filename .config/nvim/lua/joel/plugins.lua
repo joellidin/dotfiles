@@ -84,6 +84,9 @@ packer.startup(function(use)
     use "pwntester/octo.nvim"
   end
 
+  -- Github copilot
+  use "github/copilot.vim"
+
   -- Completion
   use "hrsh7th/nvim-cmp" -- Autocompletion plugin
   use "hrsh7th/cmp-buffer" -- For completing words in current buffer
