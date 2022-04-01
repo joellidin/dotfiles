@@ -1,3 +1,6 @@
+!! set Xft dpi
+Xft.dpi: 150
+
 !! Transparency (0-1):
 st.alpha: 0.95
 st.alphaOffset: 0.05
