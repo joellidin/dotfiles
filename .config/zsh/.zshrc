@@ -135,6 +135,9 @@ export WORKON_HOME=$HOME/.local/share/virtualenvs
 VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3
 . /usr/local/bin/virtualenvwrapper.sh
 
+# pyenv
+eval "$(pyenv init --path)"
+
 if [ -f $HOME/.config/shell/aliasrc ]; then
     . $HOME/.config/shell/aliasrc
 fi
