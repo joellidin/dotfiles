@@ -49,7 +49,7 @@ packer.startup(function(use)
   use "nvim-telescope/telescope-symbols.nvim"
   use { "nvim-telescope/telescope-smart-history.nvim" }
 
-  use { "tami5/sqlite.lua", rocks = { "luv" } } -- Required for frecency
+  use { "tami5/sqlite.lua" } -- Required for frecency
   use { "nvim-telescope/telescope-frecency.nvim" }
   -- use { -- Search on the web from telescope
   --   "nvim-telescope/telescope-arecibo.nvim",

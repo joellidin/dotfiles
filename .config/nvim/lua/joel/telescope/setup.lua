@@ -128,12 +128,13 @@ require("telescope").setup {
       reset_selection = true,
     },
 
-    -- frecency = {
+    frecency = {
+      db_root = vim.fn.stdpath "data" .. "/databases/",
     --   workspaces = {
     --     ["conf"] = "/home/tj/.config/nvim/",
     --     ["nvim"] = "/home/tj/build/neovim",
     --   },
-    -- },
+    },
   },
 }
 
