@@ -66,7 +66,7 @@ packer.startup(function(use)
   }
 
   -- Git
-  use "/home/jlidin/plugins/neogit"
+  use "TimUntersberger/neogit"
   use "sindrets/diffview.nvim"
   use "rhysd/committia.vim"
   -- Floating windows are awesome :)
