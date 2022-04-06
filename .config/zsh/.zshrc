@@ -144,9 +144,10 @@ fi
 
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
-fpath+=$HOME/.local/src/oh-my-zsh/custom/themes/pure
-autoload -U promptinit; promptinit
-prompt pure
+# fpath+=$HOME/.local/src/oh-my-zsh/custom/themes/pure
+# autoload -U promptinit; promptinit
+# prompt pure
+eval "$(starship init zsh)"
 
 
 alias luamake=/home/jlidin/.cache/nvim/nlua/lua-language-server/3rd/luamake/luamake
