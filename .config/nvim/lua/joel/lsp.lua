@@ -79,6 +79,23 @@ lspSymbol("Warning", "")
 -- map buffer local keybindings when the language server attaches
 local lsp_installer = require "nvim-lsp-installer"
 
+-- Default servers to install from LSP installer
+local servers = {
+  "bashls",
+  "pyright",
+  "sqlls",
+  "yamlls",
+  "rust_analyzer",
+}
+
+for _, name in pairs(servers) do
+  local server_is_found, server = lsp_installer.get_server(name)
+  if server_is_found and not server:is_installed() then
+    print("Installing " .. name)
+    server:install()
+  end
+end
+
 -- Register a handler that will be called for each installed server when it's ready (i.e. when installation is finished
 -- or if the server is already installed).
 lsp_installer.on_server_ready(function(server)
