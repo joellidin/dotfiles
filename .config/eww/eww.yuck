@@ -51,13 +51,14 @@
        :orientation "h"
        :space-evenly false
        :halign "center"
-		(button :class "next"
-						:onclick "playerctl previous"
-						{"玲"})
-    {music != "" ? " ${music}" : ""}
-		(button :class "next"
-						:onclick "playerctl next"
-						{"怜"}))
+		; (button :class "next"
+		; 				:onclick "playerctl previous"
+		; 				{"玲"})
+    {music != "" ? "" : ""}
+		; (button :class "next"
+		; 				:onclick "playerctl next"
+		; 				{"怜"})
+    )
 )
 
 
