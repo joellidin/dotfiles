@@ -1,12 +1,12 @@
 !! set Xft dpi
-Xft.dpi: 150
+Xft.dpi: 192
 
 !! Transparency (0-1):
 st.alpha: 0.95
 st.alphaOffset: 0.05
 
 !! Set a default font and font size as below:
-st.font: Monospace-11;
+st.font: Monospace-12;
 
 ! st.termname: st-256color
 ! st.borderpx: 2
