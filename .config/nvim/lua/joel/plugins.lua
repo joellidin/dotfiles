@@ -25,6 +25,9 @@ packer.startup(function(use)
     end,
   }
 
+  -- Yuck
+  use "elkowar/yuck.vim"
+
   -- LSP
   use "neovim/nvim-lspconfig"
   use "williamboman/nvim-lsp-installer"
