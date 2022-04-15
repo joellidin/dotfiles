@@ -17,3 +17,5 @@
     side-by-side = false
     file-modified-label = modified
     navigate = true
+[init]
+	defaultBranch = main
