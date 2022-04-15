@@ -79,9 +79,11 @@ plugins=(
   zsh-autosuggestions
   history-substring-search
   zsh-syntax-highlighting
+  gopass
 )
 
 source $ZSH/oh-my-zsh.sh
+
 
 globalias() {
    # Get last word to the left of the cursor:

@@ -39,6 +39,8 @@ export RUSTUP_HOME="${XDG_DATA_HOME-$HOME/.local/share}/rustup"
 export NPM_CONFIG_USERCONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/npm/npmrc"
 export NODE_REPL_HISTORY="${XDG_DATA_HOME-$HOME/.local/share}/node_repl_history"
 export N_PREFIX="${XDG_DATA_HOME-$HOME/.local/share}/n"
+export PASSWORD_STORE_DIR="${XDG_DATA_HOME-$HOME/.local/share}/gopass"
+export GOPATH="${XDG_DATA_HOME-$HOME/.local/share}/go"
 
 bindkey -s ^f "tmux-sessionizer\n"
-export PATH=/usr/local/go/bin:$HOME/.local/share/npm/bin:$HOME/.local/share/n/bin:$PATH
+export PATH=$GOPATH/bin:/usr/local/go/bin:$HOME/.local/share/npm/bin:$HOME/.local/share/n/bin:$PATH
