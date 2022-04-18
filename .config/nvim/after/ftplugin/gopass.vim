@@ -1,0 +1,1 @@
+setlocal noswapfile nobackup noundofile
