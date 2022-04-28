@@ -4,7 +4,7 @@
 [user]
 	email = joel.lidin@volvocars.com
 	name = Joel Lidin
-	signingkey = 1366F73798B494AB
+	signingkey = 99B478EFF8ED88CD
 [commit]
 	gpgsign = true
 [core]
