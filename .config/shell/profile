@@ -10,15 +10,15 @@ export PYENV_ROOT="$HOME/.local/src/pyenv"
 export PATH="$PYENV_ROOT/bin:$PATH"
 
 # Adds `~/.local/bin` to $PATH
-export PATH="$PATH:${$(find ~/.local/bin -type d -printf %p:)%%:}"
+export PATH="$PATH:$HOME/.local/bin"
 
-unsetopt PROMPT_SP
-
-# Default programs:
+# Default programs
 export EDITOR="nvim"
 export TERMINAL="st"
 export BROWSER="firefox"
 
+# Other program settings
+export SUDO_ASKPASS="$HOME/.local/bin/dmenupass"
 # Use nvim as man pager
 export MANPAGER='nvim +Man!'
 
