@@ -171,3 +171,6 @@ setopt HIST_VERIFY               # Don't execute immediately upon history expans
 
 # Set vi mode
 setopt vi
+
+# Bind keys
+bindkey -s ^f "tmux-sessionizer\n"

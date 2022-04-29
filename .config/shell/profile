@@ -45,5 +45,4 @@ export N_PREFIX="${XDG_DATA_HOME-$HOME/.local/share}/n"
 export PASSWORD_STORE_DIR="${XDG_DATA_HOME-$HOME/.local/share}/gopass"
 export GOPATH="${XDG_DATA_HOME-$HOME/.local/share}/go"
 
-bindkey -s ^f "tmux-sessionizer\n"
 export PATH=$GOPATH/bin:/usr/local/go/bin:$HOME/.local/share/npm/bin:$HOME/.local/share/n/bin:$PATH
