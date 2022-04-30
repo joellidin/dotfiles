@@ -1,0 +1,56 @@
+#!/bin/sh
+
+otp_print () {
+    # Check if Yubikey is inserted and working
+    ykman oath accounts list >/dev/null 2>&1 || { notify-send "Yubikey not inserted" ; exit 0; }
+
+    # Query account to print otp
+    account=$(ykman oath accounts list | sed "s/:/: /g" | dmenu)
+    ykman oath accounts code -s "$(echo $account | sed "s/: /:/g")" | xdotool type --clearmodifiers --file -
+    notify-send "Printed oath for $account"
+}
+
+otp_copy () {
+    # Check if Yubikey is inserted and working
+    ykman oath accounts list >/dev/null 2>&1 || { notify-send "Yubikey not inserted" ; exit 0; }
+
+    # Query account to print otp
+    account=$(ykman oath accounts list | sed "s/:/: /g" | dmenu)
+    ykman oath accounts code -s "$(echo $account | sed "s/: /:/g")" | xclip -selection c
+    notify-send "Copied oath for $account"
+}
+
+password_print () {
+    account=$(gopass ls --flat websites | cut -d "/" -f 2,3 | dmenu)
+    notify-send "Touch Yubikey"
+    gopass show -o "websites/$account" | xdotool type --clearmodifiers --file -
+    notify-send "Printed password for:" "$account"
+}
+
+password_copy () {
+    account=$(gopass ls --flat websites | cut -d "/" -f 2,3 | dmenu)
+    notify-send "Touch Yubikey"
+    gopass show -c "websites/$account" >/dev/null 2>&1
+}
+
+username_print () {
+    account=$(gopass ls --flat websites | cut -d "/" -f 2,3 | dmenu)
+    notify-send "Touch Yubikey"
+    gopass show -f "websites/$account" username | head -n 1 | xdotool type --clearmodifiers --file -
+    notify-send "Printed username for:" "$(echo $account | cut -d '/' -f 1)"
+}
+
+username_copy () {
+    account=$(gopass ls --flat websites | cut -d "/" -f 2,3 | dmenu)
+    notify-send "Touch Yubikey"
+    gopass show -c -f "websites/$account" username >/dev/null 2>&1
+}
+
+case "$(printf "password\\nusername\\none time password\\npassword (copy)\\nusername (copy)\\none time password (copy)" | dmenu -l 6 -i -p "Choose what to insert")" in
+	"password") password_print ;;
+	"username") username_print ;;
+	"one time password") otp_print ;;
+	"password (copy)") password_copy ;;
+	"username (copy)") username_copy ;;
+	"one time password (copy)") otp_copy ;;
+esac

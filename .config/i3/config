@@ -282,6 +282,7 @@ bindsym $mod+F2		        restart
 bindsym $mod+F3		        reload
 bindsym $mod+F8		        exec $HOME/.local/bin/dmenumount
 bindsym $mod+F9		        exec $HOME/.local/bin/dmenuumount
+bindsym $mod+F10	        exec $HOME/.local/bin/yubikey-oath-dmenu
 
 # #---Arrow Keys---# #
 bindsym $mod+Left		focus left
