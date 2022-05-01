@@ -6,7 +6,7 @@ otp_print () {
 
     # Query account to print otp
     account="$(ykman oath accounts list | sed "s/:/: /g" | dmenu -i -p "Choose account")" || exit 1
-    ykman oath accounts code -s "$(echo $account | sed "s/: /:/g")" | xdotool type --clearmodifiers --file -
+    ykman oath accounts code -s "$(echo $account | sed "s/: /:/g")" | xdotool type --clearmodifiers --file - && xdotool key KP_Enter
     notify-send "Printed oath for $account"
 }
 
