@@ -82,6 +82,8 @@ plugins=(
   gopass
 )
 
+# zcompdump clean up for oh-my-zsh
+export ZSH_COMPDUMP="$XDG_CACHE_HOME/zsh/zcompdump-$HOST-$ZSH_VERSION"
 source $ZSH/oh-my-zsh.sh
 
 
@@ -176,3 +178,7 @@ setopt vi
 
 # Bind keys
 bindkey -s ^f "tmux-sessionizer\n"
+
+# clean up 
+# compinit -d $XDG_CACHE_HOME/zsh/zcompdump-$ZSH_VERSION
+zstyle ':completion:*' cache-path $XDG_CACHE_HOME/zsh/zcompcache
