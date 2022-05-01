@@ -2,3 +2,6 @@
 
 # zsh
 */.zcompdump*
+
+# nvim
+*packer_compiled.vim
