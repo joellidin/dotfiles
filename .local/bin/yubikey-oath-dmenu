@@ -54,12 +54,12 @@ user_pass_insert () {
     notify-send "Printed username for:" "$(echo $account | cut -d '/' -f 1)"
 }
 
-case "$(printf "password and username\\npassword\\nusername\\none time password\\npassword (copy)\\nusername (copy)\\none time password (copy)" | dmenu -l 7 -i -p "Choose what to insert")" in
-	"password and username") user_pass_insert ;;
-	"password") password_print ;;
-	"username") username_print ;;
-	"one time password") otp_print ;;
-	"password (copy)") password_copy ;;
-	"username (copy)") username_copy ;;
-	"one time password (copy)") otp_copy ;;
+case "$(printf "(1) password and username\\n(2) password\\n(3) username\\n(4) one time password\\n(5) password (copy)\\n(6) username (copy)\\n(7) one time password (copy)" | dmenu -l 7 -i -p "Choose what to insert")" in
+    "(1) password and username") user_pass_insert ;;
+    "(2) password") password_print ;;
+	"(3) username") username_print ;;
+	"(4) one time password") otp_print ;;
+	"(5) password (copy)") password_copy ;;
+	"(6) username (copy)") username_copy ;;
+	"(7) one time password (copy)") otp_copy ;;
 esac
