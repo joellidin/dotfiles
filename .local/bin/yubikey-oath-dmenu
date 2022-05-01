@@ -23,7 +23,7 @@ otp_copy () {
 password_print () {
     account="$(gopass ls --flat websites | cut -d "/" -f 2,3 | dmenu -i -p "Choose account")" || exit 1
     notify-send "Touch Yubikey"
-    gopass show -o "websites/$account" | xdotool type --clearmodifiers --file -
+    gopass show -o "websites/$account" | xdotool type --clearmodifiers --file - && xdotool key KP_Enter
     notify-send "Printed password for:" "$account"
 }
 
@@ -46,7 +46,16 @@ username_copy () {
     gopass show -c -f "websites/$account" username >/dev/null 2>&1
 }
 
-case "$(printf "password\\nusername\\none time password\\npassword (copy)\\nusername (copy)\\none time password (copy)" | dmenu -l 6 -i -p "Choose what to insert")" in
+user_pass_insert () {
+    account="$(gopass ls --flat websites | cut -d "/" -f 2,3 | dmenu -i -p "Choose account")" || exit 1
+    notify-send "Touch Yubikey"
+    gopass show -f "websites/$account" username | head -n 1 | xdotool type --clearmodifiers --file - && xdotool key KP_Tab
+    gopass show -o "websites/$account" | xdotool type --clearmodifiers --file - && xdotool key KP_Enter
+    notify-send "Printed username for:" "$(echo $account | cut -d '/' -f 1)"
+}
+
+case "$(printf "password and username\\npassword\\nusername\\none time password\\npassword (copy)\\nusername (copy)\\none time password (copy)" | dmenu -l 7 -i -p "Choose what to insert")" in
+	"password and usernam") user_pass_insert ;;
 	"password") password_print ;;
 	"username") username_print ;;
 	"one time password") otp_print ;;
