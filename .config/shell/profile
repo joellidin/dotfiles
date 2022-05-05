@@ -15,7 +15,7 @@ export PATH="$PATH:$HOME/.local/bin"
 # Default programs
 export EDITOR="nvim"
 export TERMINAL="st"
-export BROWSER="firefox"
+export BROWSER="brave-browser"
 
 # Other program settings
 export SUDO_ASKPASS="$HOME/.local/bin/dmenupass"
@@ -46,3 +46,5 @@ export PASSWORD_STORE_DIR="${XDG_DATA_HOME-$HOME/.local/share}/gopass"
 export GOPATH="${XDG_DATA_HOME-$HOME/.local/share}/go"
 
 export PATH=$GOPATH/bin:/usr/local/go/bin:$HOME/.local/share/npm/bin:$HOME/.local/share/n/bin:$PATH
+
+. $CARGO_HOME/env

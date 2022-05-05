@@ -50,8 +50,9 @@ user_pass_insert () {
     account="$(gopass ls --flat websites | cut -d "/" -f 2,3 | dmenu -i -p "Choose account")" || exit 1
     notify-send "Touch Yubikey"
     gopass show -f "websites/$account" username | head -n 1 | xdotool type --clearmodifiers --file - && xdotool key Tab
-    gopass show -o "websites/$account" | xdotool type --clearmodifiers --file - && xdotool key KP_Enter
     notify-send "Printed username for:" "$(echo $account | cut -d '/' -f 1)"
+    gopass show -o "websites/$account" | xdotool type --clearmodifiers --file - && xdotool key KP_Enter
+    notify-send "Printed password for:" "$account"
 }
 
 case "$(printf "(1) password and username\\n(2) password\\n(3) username\\n(4) one time password\\n(5) password (copy)\\n(6) username (copy)\\n(7) one time password (copy)" | dmenu -l 7 -i -p "Choose what to insert")" in
