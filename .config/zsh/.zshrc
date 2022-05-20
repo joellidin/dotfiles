@@ -76,6 +76,7 @@ ZSH_THEME=""
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
   git
+  git-auto-fetch
   zsh-autosuggestions
   history-substring-search
   zsh-syntax-highlighting
@@ -158,6 +159,7 @@ alias luamake=/home/jlidin/.cache/nvim/nlua/lua-language-server/3rd/luamake/luam
 # History settings
 export HISTSIZE=10000000
 export SAVEHIST=10000000
+export HISTTIMEFORMAT="%F %T: "
 setopt BANG_HIST                 # Treat the '!' character specially during expansion.
 setopt EXTENDED_HISTORY          # Write the history file in the ":start:elapsed;command" format.
 setopt INC_APPEND_HISTORY        # Write to the history file immediately, not when the shell exits.
