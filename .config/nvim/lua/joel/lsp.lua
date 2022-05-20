@@ -77,61 +77,37 @@ lspSymbol("Warning", "")
 
 -- Use a loop to conveniently call 'setup' on multiple servers and
 -- map buffer local keybindings when the language server attaches
-local lsp_installer = require "nvim-lsp-installer"
 
 -- Default servers to install from LSP installer
 local servers = {
   "bashls",
   "pyright",
   "sqlls",
+  "gopls",
   "yamlls",
   "rust_analyzer",
 }
 
-for _, name in pairs(servers) do
-  local server_is_found, server = lsp_installer.get_server(name)
-  if server_is_found and not server:is_installed() then
-    print("Installing " .. name)
-    server:install()
-  end
-end
-
 -- Register a handler that will be called for each installed server when it's ready (i.e. when installation is finished
 -- or if the server is already installed).
-lsp_installer.on_server_ready(function(server)
-  local opts = {
-    on_attach = on_attach,
-    flags = {
-      debounce_text_changes = 150,
-    },
-  }
-
-  -- (optional) Customize the options passed to the server
-  -- if server.name == "tsserver" then
-  --     opts.root_dir = function() ... end
-  -- end
-
-  -- This setup() function will take the provided server configuration and decorate it with the necessary properties
-  -- before passing it onwards to lspconfig.
-  -- Refer to https://github.com/neovim/nvim-lspconfig/blob/master/doc/server_configurations.md
-  server:setup(opts)
-end)
 
 local custom_init = function(client)
   client.config.flags = client.config.flags or {}
   client.config.flags.allow_incremental_sync = true
 end
 
+require("nvim-lsp-installer").setup {
+  automatic_installation = true,
+}
 local nvim_lsp = require "lspconfig"
--- local servers = { "pyright", "rust_analyzer", "tsserver", "jsonls" }
--- for _, lsp in pairs(servers) do
---   nvim_lsp[lsp].setup {
---     on_attach = on_attach,
---     flags = {
---       debounce_text_changes = 150,
---     },
---   }
--- end
+for _, lsp in pairs(servers) do
+  nvim_lsp[lsp].setup {
+    on_attach = on_attach,
+    flags = {
+      debounce_text_changes = 150,
+    },
+  }
+end
 
 -- setup for flake8
 -- local flake8 = {
