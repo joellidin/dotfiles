@@ -18,6 +18,8 @@ require "joel.lsp"
 require "joel.configs"
 -- Global settings
 require "joel.globals"
---Telescope settings
+-- Telescope settings
 require "joel.telescope.setup"
 require "joel.telescope.mappings"
+-- Surround plugin from mini.nvim
+require("joel.surround").setup()
