@@ -119,6 +119,9 @@ packer.startup(function(use)
   use { "yamatsum/nvim-nonicons", disable = true }
   use "kyazdani42/nvim-web-devicons"
 
+  -- Startup
+  use { "goolord/alpha-nvim", requires = "kyazdani42/nvim-web-devicons" }
+
   -- Notify
   use "rcarriga/nvim-notify"
 
