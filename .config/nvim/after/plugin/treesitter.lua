@@ -101,7 +101,6 @@ local _ = require("nvim-treesitter.configs").setup {
       },
     },
 
-    -- TODO: This seems broken...
     navigation = {
       enable = false,
       keymaps = {

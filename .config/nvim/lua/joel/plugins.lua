@@ -16,6 +16,7 @@ packer.startup(function(use)
     run = ":TSUpdate",
   }
   use "nvim-treesitter/nvim-treesitter-textobjects"
+  use "nvim-treesitter/nvim-treesitter-refactor"
   use "JoosepAlviste/nvim-ts-context-commentstring"
   use "nvim-treesitter/playground"
   use {
