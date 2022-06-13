@@ -93,6 +93,6 @@ dashboard.config.layout = {
 }
 
 -- Do not show statusline or tabline in alpha buffer
-vim.cmd [[ au User AlphaReady if winnr('$') == 1 | set laststatus=0 showtabline=0 | endif | au BufUnload <buffer> set laststatus=3 showtabline=2 ]]
+vim.cmd [[ au User AlphaReady if winnr('$') == 1 | set laststatus=0 showtabline=0 | endif | au BufUnload <buffer> set laststatus=3 showtabline=1 ]]
 
 alpha.setup(dashboard.opts)
