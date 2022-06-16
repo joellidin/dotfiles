@@ -17,5 +17,10 @@
     side-by-side = false
     file-modified-label = modified
     navigate = true
+    word-diff-regex = .
 [init]
 	defaultBranch = main
+[pull]
+	rebase = true
+[fetch]
+	prune = true
