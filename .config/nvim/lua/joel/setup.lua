@@ -22,4 +22,4 @@ require "joel.globals"
 require "joel.telescope.setup"
 require "joel.telescope.mappings"
 -- Surround plugin from mini.nvim
-require("joel.surround").setup()
+require("joel.surround").setup {}
