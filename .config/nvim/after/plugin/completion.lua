@@ -108,6 +108,7 @@ cmp.setup {
     { name = "path" },
     { name = "luasnip" }, -- For luasnip users.
     { name = "buffer", keyword_length = 5 },
+    { name = "crates" },
   },
 
   snippet = {
@@ -129,6 +130,7 @@ cmp.setup {
         luasnip = "[snip]",
         gh_issues = "[issues]",
         tn = "[TabNine]",
+        crates = "[crates]"
       },
     },
   },

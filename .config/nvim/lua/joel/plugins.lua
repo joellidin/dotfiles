@@ -103,6 +103,15 @@ packer.startup(function(use)
 
   use "onsails/lspkind-nvim" -- Add vscode-like pictograms to neovim built-in lsp
 
+  --
+  use {
+    "saecki/crates.nvim",
+    event = { "BufRead Cargo.toml" },
+    config = function()
+      require("crates").setup()
+    end,
+  }
+
   -- Colorschemes (might be temporary)
   use "tjdevries/colorbuddy.vim"
   use "tjdevries/gruvbuddy.nvim"
