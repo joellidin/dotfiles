@@ -38,3 +38,6 @@ vnoremap K :move '<-2<CR>gv=gv
 
 nnoremap ]q :cnext<CR>
 nnoremap [q :cprev<CR>
+
+" Good for swedish keyboard
+nnoremap Ö :

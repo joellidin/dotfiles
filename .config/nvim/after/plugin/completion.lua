@@ -81,10 +81,6 @@ cmp.setup {
       },
       { "i", "c" }
     ),
-    ["<CR>"] = cmp.mapping.confirm {
-      behavior = cmp.ConfirmBehavior.Insert,
-      select = true,
-    },
     ["<C-Space>"] = cmp.mapping {
       i = cmp.mapping.complete(),
       c = function(
@@ -130,7 +126,7 @@ cmp.setup {
         luasnip = "[snip]",
         gh_issues = "[issues]",
         tn = "[TabNine]",
-        crates = "[crates]"
+        crates = "[crates]",
       },
     },
   },
