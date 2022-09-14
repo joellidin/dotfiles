@@ -305,7 +305,6 @@ bindsym XF86AudioMute exec amixer -q -D pulse sset Master toggle && pkill -RTMIN
 focus_on_window_activation focus
 
 
-exec                            teams
 exec                            slack
 exec                            $BROWSER
 # exec_always                     external_monitor two-monitors right
@@ -315,6 +314,5 @@ exec                            $BROWSER
 # workspace 3 output primary
 # workspace 4 output eDP-1 eDP1 secondary
 
-assign [class="Microsoft Teams"] 4
 assign [class="Slack"] 4
-# assign [class="firefox"] 1
+assign [class="Brave-browser"] 1
