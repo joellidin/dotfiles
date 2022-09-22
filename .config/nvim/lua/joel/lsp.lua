@@ -96,8 +96,10 @@ local custom_init = function(client)
   client.config.flags.allow_incremental_sync = true
 end
 
-require("nvim-lsp-installer").setup {
+require("mason").setup()
+require("mason-lspconfig").setup {
   automatic_installation = true,
+  ensure_installed = servers,
 }
 local nvim_lsp = require "lspconfig"
 for _, lsp in pairs(servers) do
