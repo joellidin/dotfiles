@@ -98,7 +98,8 @@ cmp.setup {
   },
 
   sources = {
-    { name = "gh_issues" },
+    -- { name = "gh_issues" },
+    { name = "git" },
     { name = "nvim_lua" },
     { name = "nvim_lsp" },
     { name = "path" },
@@ -124,7 +125,7 @@ cmp.setup {
         nvim_lua = "[api]",
         path = "[path]",
         luasnip = "[snip]",
-        gh_issues = "[issues]",
+        git = "[git]",
         tn = "[TabNine]",
         crates = "[crates]",
       },
@@ -135,6 +136,10 @@ cmp.setup {
     native_menu = false,
     ghost_text = true,
   },
+}
+
+require("cmp_git").setup {
+  filetypes = { "gitcommit", "octo", "markdown" },
 }
 
 cmp.setup.cmdline("/", {

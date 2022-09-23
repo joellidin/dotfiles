@@ -101,6 +101,7 @@ packer.startup(function(use)
   use "hrsh7th/cmp-nvim-lsp" -- LSP source for nvim-cmp
   use "hrsh7th/cmp-cmdline" -- For vims cmdline
   use "saadparwaiz1/cmp_luasnip" -- Snippets source for nvim-cmp
+  use "petertriho/cmp-git"
 
   use "onsails/lspkind-nvim" -- Add vscode-like pictograms to neovim built-in lsp
 
