@@ -34,6 +34,7 @@ packer.startup(function(use)
   use "neovim/nvim-lspconfig"
   use "williamboman/mason.nvim"
   use "williamboman/mason-lspconfig.nvim"
+  use "ray-x/lsp_signature.nvim"
   -- use 'tamago324/nlsp-settings.nvim' -- Does not work
   use { "L3MON4D3/LuaSnip", disable = true } -- Snippets plugin
   use "tjdevries/nlua.nvim" -- Lua development from tjdevries
