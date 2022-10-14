@@ -37,7 +37,7 @@ packer.startup(function(use)
   use "williamboman/mason-lspconfig.nvim"
   use "ray-x/lsp_signature.nvim"
   -- use 'tamago324/nlsp-settings.nvim' -- Does not work
-  use { "L3MON4D3/LuaSnip", disable = true } -- Snippets plugin
+  use "L3MON4D3/LuaSnip" -- Snippets plugin
   use "tjdevries/nlua.nvim" -- Lua development from tjdevries
 
   -- This is a requirement, which implements some useful window management
@@ -156,4 +156,7 @@ packer.startup(function(use)
 
   -- Harpoon for easy navigating in project
   use "ThePrimeagen/harpoon"
+
+  -- Plugin for help with refactoring
+  use "ThePrimeagen/refactoring.nvim"
 end)

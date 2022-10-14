@@ -130,10 +130,10 @@ require("telescope").setup {
 
     frecency = {
       db_root = vim.fn.stdpath "data" .. "/databases/",
-    --   workspaces = {
-    --     ["conf"] = "/home/tj/.config/nvim/",
-    --     ["nvim"] = "/home/tj/build/neovim",
-    --   },
+      --   workspaces = {
+      --     ["conf"] = "/home/tj/.config/nvim/",
+      --     ["nvim"] = "/home/tj/build/neovim",
+      --   },
     },
   },
 }
