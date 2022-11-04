@@ -119,6 +119,8 @@ packer.startup(function(use)
   -- Colorschemes (might be temporary)
   use "tjdevries/colorbuddy.vim"
   use "tjdevries/gruvbuddy.nvim"
+  use "marko-cerovac/material.nvim"
+  use "folke/tokyonight.nvim"
 
   -- Pretty colors
   use "norcalli/nvim-colorizer.lua"
