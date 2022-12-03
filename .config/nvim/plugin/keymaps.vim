@@ -41,3 +41,6 @@ nnoremap [q :cprev<CR>
 
 " Good for swedish keyboard
 nnoremap Ö :
+
+nnoremap <C-d> <C-d>zz
+nnoremap <C-u> <C-u>zz
