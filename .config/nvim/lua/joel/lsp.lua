@@ -1,35 +1,3 @@
--- local lsp = require'lspconfig'
-
--- lsp.diagnosticls.setup {
---   filetypes = {"python"},
---  init_options = {
---    formatters = {
---      black = {
---        command = "black",
---        args = {"--quiet", "-"},
---        rootPatterns = {"pyproject.toml"},
---      },
---      formatFiletypes = {
---        python = {"black"}
---      }
---    }
---  }
--- }
--- lsp.pyright.setup{
---   settings = {
---     python = {
---       linting = {
---         flake8Enabled = true,
---         enabled = true,
---         flake8Args = {"--config=/Users/joellidin/Documents/matched-betting/setup.cfg"},
---       },
---       formatting = {
---         provider = "black",
---         blackArgs = {"--config", "/Users/joellidin/Documents/matched-betting/pyproject.toml"},
---       }
---     }
---   }
--- }
 -- Use an on_attach function to only map the following keys
 -- after the language server attaches to the current buffer
 require("lsp_signature").setup {
@@ -63,7 +31,7 @@ local on_attach = function(client, bufnr)
   buf_set_keymap("n", "<space>rn", "<cmd>lua vim.lsp.buf.rename()<CR>", opts)
   buf_set_keymap("n", "<space>ca", "<cmd>lua vim.lsp.buf.code_action()<CR>", opts)
   buf_set_keymap("n", "gr", "<cmd>lua vim.lsp.buf.references()<CR>", opts)
-  buf_set_keymap("n", "<space>e", "<cmd>lua vim.diagnostic.open_float()<CR>", opts)
+  buf_set_keymap("n", "<space>e", "<cmd>lua vim.diagnostic.open_float({source = 'always'})<CR>", opts)
   buf_set_keymap("n", "[d", "<cmd>lua vim.diagnostic.goto_prev()<CR>", opts)
   buf_set_keymap("n", "]d", "<cmd>lua vim.diagnostic.goto_next()<CR>", opts)
   buf_set_keymap("n", "<space>q", "<cmd>lua vim.diagnostic.setloclist()<CR>", opts)
@@ -119,28 +87,15 @@ for _, lsp in pairs(servers) do
     flags = {
       debounce_text_changes = 150,
     },
+    settings = {
+      python = {
+        analysis = {
+          typeCheckingMode = "off",
+        },
+      },
+    },
   }
 end
-
--- setup for flake8
--- local flake8 = {
---   lintCommand = "flake8 --stdin-display-name ${INPUT} -",
---   lintStdin = true,
---   lintFormats = { "%f=%l:%c: %m" },
--- }
--- require("lspconfig").efm.setup {
---   init_options = { documentFormatting = true },
---   settings = {
---     rootMarkers = { ".git/" },
---     languages = {
---       python = {
---         { flake8 },
---       },
---     },
---   },
---   filetypes = { "python" },
---   on_attach = on_attach,
--- }
 
 local capabilities = vim.lsp.protocol.make_client_capabilities()
 capabilities.textDocument.completion.completionItem.snippetSupport = true
@@ -199,6 +154,11 @@ local function filter_diagnostics(diagnostic)
 
   -- Allow variables starting with an underscore
   if string.match(diagnostic.message, '"_.+" is not accessed') then
+    return false
+  end
+
+  -- Let Ruff warn about this
+  if string.match(diagnostic.message, '".+" is not accessed') then
     return false
   end
 

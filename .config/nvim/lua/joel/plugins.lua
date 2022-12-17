@@ -45,6 +45,9 @@ packer.startup(function(use)
   use "nvim-lua/plenary.nvim"
   use "nvim-lua/popup.nvim"
 
+  -- null-ls
+  use "jose-elias-alvarez/null-ls.nvim"
+
   -- Telescope
   use "nvim-telescope/telescope.nvim"
   use "nvim-telescope/telescope-fzf-writer.nvim" -- requires fzf and ripgrep
