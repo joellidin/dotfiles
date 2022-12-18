@@ -134,6 +134,9 @@ packer.startup(function(use)
     end,
   }
 
+  -- Undotree
+  use "mbbill/undotree"
+
   -- Icons
   use { "yamatsum/nvim-nonicons", disable = true }
   use "kyazdani42/nvim-web-devicons"
