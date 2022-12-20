@@ -27,6 +27,7 @@ null_ls.setup {
   sources = {
     ruff_fix(),
     null_ls.builtins.diagnostics.ruff,
+    null_ls.builtins.diagnostics.markdownlint,
     -- null_ls.builtins.diagnostics.flake8,
   },
 }

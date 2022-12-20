@@ -159,8 +159,14 @@ packer.startup(function(use)
   use "nvim-lualine/lualine.nvim"
   use "nvim-lua/lsp-status.nvim" -- Research how to use this
 
-  -- Markdown
-  use "iamcco/markdown-preview.nvim"
+  use {
+    "iamcco/markdown-preview.nvim",
+    run = "cd app && npm install",
+    setup = function()
+      vim.g.mkdp_filetypes = { "markdown" }
+    end,
+    ft = { "markdown" },
+  }
 
   -- Harpoon for easy navigating in project
   use "ThePrimeagen/harpoon"
