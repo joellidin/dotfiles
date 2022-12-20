@@ -8,6 +8,7 @@ local on_attach = function(client, bufnr)
   local function buf_set_keymap(...)
     vim.api.nvim_buf_set_keymap(bufnr, ...)
   end
+
   local function buf_set_option(...)
     vim.api.nvim_buf_set_option(bufnr, ...)
   end
@@ -48,6 +49,7 @@ end
 local function lspSymbol(name, icon)
   vim.fn.sign_define("DiagnosticSign" .. name, { text = icon, numhl = "DiagnosticDefault" .. name })
 end
+
 lspSymbol("Error", "")
 lspSymbol("Information", "")
 lspSymbol("Hint", "")
@@ -91,6 +93,11 @@ for _, lsp in pairs(servers) do
       python = {
         analysis = {
           typeCheckingMode = "off",
+        },
+      },
+      ["rust-analyzer"] = {
+        checkOnSave = {
+          command = "clippy",
         },
       },
     },
