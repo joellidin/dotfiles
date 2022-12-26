@@ -14,7 +14,7 @@
 [delta]
     line-numbers = true
     syntax-theme = gruvbox-dark
-    side-by-side = false
+    side-by-side = true
     file-modified-label = modified
     navigate = true
     ; word-diff-regex = .
