@@ -96,7 +96,7 @@ packer.startup(function(use)
   end
 
   -- Github copilot
-  use { "github/copilot.vim", disable = true }
+  use { "github/copilot.vim" }
 
   -- Completion
   use "hrsh7th/nvim-cmp" -- Autocompletion plugin

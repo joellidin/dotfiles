@@ -67,6 +67,7 @@ local servers = {
   "gopls",
   "yamlls",
   "rust_analyzer",
+  "ltex",
 }
 
 -- Register a handler that will be called for each installed server when it's ready (i.e. when installation is finished
