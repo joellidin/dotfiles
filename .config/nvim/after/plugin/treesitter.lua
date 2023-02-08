@@ -73,6 +73,7 @@ local _ = require("nvim-treesitter.configs").setup {
     "markdown",
     "python",
     "regex",
+    "rst",
     "rust",
     "scss",
     "sql",

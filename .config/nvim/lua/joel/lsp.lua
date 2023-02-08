@@ -62,12 +62,13 @@ lspSymbol("Warning", "")
 -- Default servers to install from LSP installer
 local servers = {
   "bashls",
-  "pyright",
-  "sqlls",
   "gopls",
-  "yamlls",
-  "rust_analyzer",
   "ltex",
+  "pyright",
+  "rust_analyzer",
+  "sqlls",
+  "texlab",
+  "yamlls",
 }
 
 -- Register a handler that will be called for each installed server when it's ready (i.e. when installation is finished
