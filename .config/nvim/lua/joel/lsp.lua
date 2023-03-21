@@ -4,6 +4,10 @@ require("lsp_signature").setup {
   floating_window = true,
 }
 
+require("neodev").setup {
+  -- add any options here, or leave empty to use the default settings
+}
+
 local on_attach = function(client, bufnr)
   local function buf_set_keymap(...)
     vim.api.nvim_buf_set_keymap(bufnr, ...)
@@ -63,7 +67,8 @@ lspSymbol("Warning", "")
 local servers = {
   "bashls",
   "gopls",
-  "ltex",
+  -- "ltex",
+  "lua_ls",
   "pyright",
   "rust_analyzer",
   "sqlls",
@@ -73,11 +78,6 @@ local servers = {
 
 -- Register a handler that will be called for each installed server when it's ready (i.e. when installation is finished
 -- or if the server is already installed).
-
-local custom_init = function(client)
-  client.config.flags = client.config.flags or {}
-  client.config.flags.allow_incremental_sync = true
-end
 
 require("mason").setup()
 require("mason-lspconfig").setup {
@@ -112,25 +112,6 @@ capabilities.textDocument.completion.completionItem.snippetSupport = true
 require("lspconfig").jsonls.setup {
   capabilities = capabilities,
 }
-
--- Lua lsp
-_ = require("nlua.lsp.nvim").setup(nvim_lsp, {
-  on_init = custom_init,
-  on_attach = on_attach,
-  capabilities = capabilities,
-
-  globals = {
-    -- Colorbuddy
-    "Color",
-    "c",
-    "Group",
-    "g",
-    "s",
-
-    -- Custom
-    "RELOAD",
-  },
-})
 
 local function filter(arr, func)
   -- Filter in place

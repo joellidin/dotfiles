@@ -38,7 +38,7 @@ packer.startup(function(use)
   use "ray-x/lsp_signature.nvim"
   -- use 'tamago324/nlsp-settings.nvim' -- Does not work
   use "L3MON4D3/LuaSnip" -- Snippets plugin
-  use "tjdevries/nlua.nvim" -- Lua development from tjdevries
+  use "folke/neodev.nvim" -- Lua development from folke
 
   -- This is a requirement, which implements some useful window management
   -- items for neovim
