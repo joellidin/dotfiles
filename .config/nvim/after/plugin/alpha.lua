@@ -42,7 +42,7 @@ dashboard.section.header.val = headers[math.random(1, #headers)]
 dashboard.section.buttons.val = {
   button({ shortcut = "e", hl = { { "NotifyERRORTitle", 2, 3 } } }, "ﱐ  New file", leader, "<cmd>ene<CR>"),
   button({ shortcut = "r", hl = { { "NotifyWARNTitle", 2, 3 } } }, "  Recents", leader, ":Telescope oldfiles<CR>"),
-  button({ shortcut = "s", hl = { { "NotifyINFOTitle", 2, 3 } } }, "  Sync plugins", leader, "<cmd>PackerSync<CR>"),
+  button({ shortcut = "s", hl = { { "NotifyINFOTitle", 2, 3 } } }, "  Sync plugins", leader, "<cmd>Lazy sync<CR>"),
   button(
     { shortcut = "c", hl = { { "NotifyTRACETitle", 2, 3 } } },
     "  Configurations",
@@ -65,8 +65,8 @@ dashboard.section.buttons.val = {
 }
 
 -- Footer must be a table so that its height is correctly measured
-local num_plugins_loaded = #vim.fn.globpath(vim.fn.stdpath "data" .. "/site/pack/packer/start", "*", 0, 1)
-local num_plugins_tot = #vim.tbl_keys(packer_plugins)
+local num_plugins_loaded = require("lazy").stats().loaded
+local num_plugins_tot = require("lazy").stats().count
 if num_plugins_tot <= 1 then
   dashboard.section.footer.val = { num_plugins_loaded .. " / " .. num_plugins_tot .. " plugin ﮣ loaded" }
 else
