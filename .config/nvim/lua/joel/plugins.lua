@@ -105,8 +105,8 @@ require("lazy").setup {
   -- Colorschemes (might be temporary)
   "tjdevries/colorbuddy.vim",
   "tjdevries/gruvbuddy.nvim",
-  "marko-cerovac/material.nvim",
-  "folke/tokyonight.nvim",
+  { 'rose-pine/neovim', name = 'rose-pine' },
+  { "folke/tokyonight.nvim", disable = true },
 
   -- Pretty colors
   "norcalli/nvim-colorizer.lua",
