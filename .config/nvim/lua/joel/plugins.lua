@@ -105,8 +105,8 @@ require("lazy").setup {
   -- Colorschemes (might be temporary)
   "tjdevries/colorbuddy.vim",
   "tjdevries/gruvbuddy.nvim",
-  { 'rose-pine/neovim', name = 'rose-pine' },
-  { "folke/tokyonight.nvim", disable = true },
+  { "rose-pine/neovim", name = "rose-pine" },
+  { "folke/tokyonight.nvim", enabled = false },
 
   -- Pretty colors
   "norcalli/nvim-colorizer.lua",
@@ -156,4 +156,7 @@ require("lazy").setup {
 
   -- Plugin for help with refactoring
   "ThePrimeagen/refactoring.nvim",
+
+  -- Plugin to make tmux work with neovim
+  "aserowy/tmux.nvim",
 }

@@ -7,8 +7,8 @@ inoremap <Left>   <C-o>:echom "--> h <-- "<CR>
 " Helpful delete/change into blackhole buffer
 nmap <leader>d "_d
 nmap <leader>c "_c
-nmap <leader>d "_d
-nmap <leader>c "_c
+nmap <leader>D "_D
+nmap <leader>C "_C
 
 " Opens line below or above the current line
 inoremap <S-CR> <C-O>o
