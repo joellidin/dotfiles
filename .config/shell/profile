@@ -45,6 +45,8 @@ export N_PREFIX="${XDG_DATA_HOME-$HOME/.local/share}/n"
 export PASSWORD_STORE_DIR="${XDG_DATA_HOME-$HOME/.local/share}/gopass/stores/root"
 export GOPATH="${XDG_DATA_HOME-$HOME/.local/share}/go"
 export GOMODCACHE="${XDG_CACHE_HOME-$HOME/.cache}/go/mod"
+# Vault address for work
+export VAULT_ADDR="https://vault.eu.aws.volvocars.ai"
 
 export PATH=$GOPATH/bin:/usr/local/go/bin:$HOME/.local/share/npm/bin:$HOME/.local/share/n/bin:$PATH
 

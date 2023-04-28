@@ -81,6 +81,7 @@ plugins=(
   history-substring-search
   zsh-syntax-highlighting
   gopass
+  kubectl
 )
 
 # zcompdump clean up for oh-my-zsh
