@@ -68,6 +68,7 @@ command=$HOME/.local/bin/i3-keyboard-layout i3block
 #label=♪
 # label=Volume
 interval=once
+markup=pango
 signal=10
 DEFAULT_COLOR="#bdae93"
 MUTED_COLOR="#f7555E"

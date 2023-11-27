@@ -1,0 +1,21 @@
+{
+    "brave": "firefox",
+    "brave-browser": "firefox",
+    "chrome": "chrome",
+    "chromium-browser": "chrome",
+    "clementine": "music",
+    "firefox": "firefox",
+    "google-chrome": "chrome",
+    "jetbrains-idea-ce": "edit",
+    "nautilus": "folder-open",
+    "signal": "comment",
+    "slack": "slack",
+    "st": "terminal",
+    "thunderbird": "envelope",
+    "vlc": "play",
+    "zathura": "file-pdf",
+    "inkscape": "paint-brush",
+    "x-terminal-emulator": "terminal",
+    "org.gnome.nautilus": "poop",
+    "_no_match": "question"
+}
