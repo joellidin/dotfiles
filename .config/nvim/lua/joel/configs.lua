@@ -79,3 +79,6 @@ opt.expandtab = true
 opt.undofile = true
 -- opt.dir = "/Users/joellidin/.vim/tmp/" -- Need to change
 opt.swapfile = true
+
+-- nvim-ts-context-commentstring
+vim.g.skip_ts_context_commentstring_module = true

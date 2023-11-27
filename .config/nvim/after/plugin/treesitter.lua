@@ -121,19 +121,6 @@ local _ = require("nvim-treesitter.configs").setup {
     },
   },
 
-  context_commentstring = {
-    enable = true,
-
-    -- With Comment.nvim, we don't need to run this on the autocmd.
-    -- Only run it in pre-hook
-    enable_autocmd = false,
-
-    config = {
-      c = "// %s",
-      lua = "-- %s",
-    },
-  },
-
   textobjects = {
     move = {
       enable = true,
@@ -196,6 +183,17 @@ local _ = require("nvim-treesitter.configs").setup {
       goto_node = "<cr>",
       show_help = "?",
     },
+  },
+}
+-- ts-context-commentstring
+require("ts_context_commentstring").setup {
+  -- With Comment.nvim, we don't need to run this on the autocmd.
+  -- Only run it in pre-hook
+  enable_autocmd = false,
+
+  config = {
+    c = "// %s",
+    lua = "-- %s",
   },
 }
 
