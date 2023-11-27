@@ -23,3 +23,6 @@ alias nv="nvim"
 alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 
 alias wget='wget --hsts-file="$XDG_CACHE_HOME/wget-hsts"'
+
+# git
+alias grbima="git rebase --interactive --autosquash main"
