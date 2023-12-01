@@ -29,6 +29,17 @@ require("lazy").setup {
   "L3MON4D3/LuaSnip", -- Snippets plugin
   "folke/neodev.nvim", -- Lua development from folke
 
+  -- Flutter
+  {
+    "akinsho/flutter-tools.nvim",
+    lazy = false,
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "stevearc/dressing.nvim", -- optional for vim.ui.select
+    },
+    config = true,
+  },
+
   -- This is a requirement, which implements some useful window management
   -- items for neovim
   "nvim-lua/plenary.nvim",
