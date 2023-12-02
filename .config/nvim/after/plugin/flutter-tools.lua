@@ -1,6 +1,2 @@
-require("flutter-tools").setup {}
-
-vim.api.nvim_create_autocmd("BufWritePost", {
-  pattern = "*.dart",
-  command = "FlutterReload",
-})
+local on_attach = require("joel.lsp").on_attach
+require("flutter-tools").setup { lsp = { on_attach = on_attach } }

@@ -8,7 +8,8 @@ require("neodev").setup {
   -- add any options here, or leave empty to use the default settings
 }
 
-local on_attach = function(client, bufnr)
+local M = {}
+M.on_attach = function(client, bufnr)
   local function buf_set_keymap(...)
     vim.api.nvim_buf_set_keymap(bufnr, ...)
   end
@@ -87,7 +88,7 @@ require("mason-lspconfig").setup {
 local nvim_lsp = require "lspconfig"
 for _, lsp in pairs(servers) do
   nvim_lsp[lsp].setup {
-    on_attach = on_attach,
+    on_attach = M.on_attach,
     flags = {
       debounce_text_changes = 150,
     },
@@ -105,12 +106,6 @@ for _, lsp in pairs(servers) do
     },
   }
 end
-nvim_lsp.dartls.setup {
-  on_attach = on_attach,
-  flags = {
-    debounce_text_changes = 150,
-  },
-}
 
 local capabilities = vim.lsp.protocol.make_client_capabilities()
 capabilities.textDocument.completion.completionItem.snippetSupport = true
@@ -175,3 +170,5 @@ vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(vim.lsp.handlers.hover, {
 vim.lsp.handlers["textDocument/signatureHelp"] = vim.lsp.with(vim.lsp.handlers.signature_help, {
   border = "double",
 })
+
+return M
