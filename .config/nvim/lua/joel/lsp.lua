@@ -105,6 +105,12 @@ for _, lsp in pairs(servers) do
     },
   }
 end
+nvim_lsp.dartls.setup {
+  on_attach = on_attach,
+  flags = {
+    debounce_text_changes = 150,
+  },
+}
 
 local capabilities = vim.lsp.protocol.make_client_capabilities()
 capabilities.textDocument.completion.completionItem.snippetSupport = true
