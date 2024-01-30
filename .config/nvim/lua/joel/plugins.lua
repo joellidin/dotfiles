@@ -89,7 +89,75 @@ require("lazy").setup {
   },
 
   -- Github copilot
-  "github/copilot.vim",
+  {
+    "zbirenbaum/copilot.lua",
+    cmd = "Copilot",
+    event = "InsertEnter",
+    config = function()
+      require("copilot").setup {
+        filetypes = {
+          rust = true,
+        },
+        suggestion = {
+          keymap = {
+            accept = "<M-Space>",
+          },
+        },
+      }
+    end,
+  },
+
+  -- ChatGPT
+  {
+    "jackMort/ChatGPT.nvim",
+    -- event = "VeryLazy",
+    ft = { "markdown", "python", "rust", "go" },
+    config = function()
+      require("chatgpt").setup {
+        api_key_cmd = "gopass show -o secrets/openai-key",
+        openai_params = {
+          model = "gpt-4-1106-preview",
+        },
+        openai_edit_params = {
+          model = "gpt-4-1106-preview",
+        },
+        popup_window = {
+          border = {
+            highlight = "TelescopePreviewBorder",
+          },
+          win_options = {
+            winhighlight = "Normal:TelescopePreviewNormal,FloatBorder:FloatBorder",
+          },
+        },
+        system_window = {
+          border = {
+            highlight = "TelescopePromptBorder",
+          },
+          win_options = {
+            winhighlight = "Normal:TelescopePromptNormal,FloatBorder:FloatBorder",
+          },
+        },
+        popup_input = {
+          border = {
+            highlight = "TelescopePromptBorder",
+          },
+          win_options = {
+            winhighlight = "Normal:TelescopePromptNormal,FloatBorder:FloatBorder",
+          },
+        },
+        settings_window = {
+          win_options = {
+            winhighlight = "Normal:TelescopePromptNormal,FloatBorder:FloatBorder",
+          },
+        },
+      }
+    end,
+    dependencies = {
+      "MunifTanjim/nui.nvim",
+      "nvim-lua/plenary.nvim",
+      "nvim-telescope/telescope.nvim",
+    },
+  },
 
   -- Completion
   "hrsh7th/nvim-cmp", -- Autocompletion plugin
