@@ -44,9 +44,6 @@ require("lazy").setup {
   "nvim-lua/plenary.nvim",
   "nvim-lua/popup.nvim",
 
-  -- null-ls
-  "jose-elias-alvarez/null-ls.nvim",
-
   -- Telescope
   "nvim-telescope/telescope.nvim",
   "nvim-telescope/telescope-fzf-writer.nvim", -- requires fzf and ripgrep
@@ -176,7 +173,7 @@ require("lazy").setup {
     "saecki/crates.nvim",
     event = { "BufRead Cargo.toml" },
     config = function()
-      require("crates").setup()
+      require("crates").setup {}
     end,
   },
 
@@ -193,6 +190,12 @@ require("lazy").setup {
     config = function()
       require("terminal").setup()
     end,
+  },
+
+  -- Justfiles syntax
+  {
+    "NoahTheDuke/vim-just",
+    ft = { "just" },
   },
 
   -- Undotree
