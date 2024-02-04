@@ -177,9 +177,7 @@ require("lazy").setup {
     end,
   },
 
-  -- Colorschemes (might be temporary)
-  "tjdevries/colorbuddy.vim",
-  "tjdevries/gruvbuddy.nvim",
+  -- Colorschemes
   { "rose-pine/neovim", name = "rose-pine" },
   { "folke/tokyonight.nvim", enabled = false },
 
