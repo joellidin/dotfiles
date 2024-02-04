@@ -75,12 +75,15 @@ local servers = {
   "sqlls",
   "texlab",
   "yamlls",
+  "ruff_lsp",
 }
 
 -- Register a handler that will be called for each installed server when it's ready (i.e. when installation is finished
 -- or if the server is already installed).
 
-require("mason").setup()
+require("mason").setup {
+  PATH = "append", -- Ensure we prefer local binaries where possible
+}
 require("mason-lspconfig").setup {
   automatic_installation = true,
   ensure_installed = servers,
