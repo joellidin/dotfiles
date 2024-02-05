@@ -78,7 +78,7 @@ require("telescope").setup {
       },
     },
 
-    borderchars = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },
+    borderchars = { "─", "│", "─", "│", "┌", "┐", "┘", "└" },
 
     -- file_sorter = sorters.get_fzy_sorter,
     file_ignore_patterns = {
@@ -134,6 +134,10 @@ require("telescope").setup {
       --     ["conf"] = "/home/tj/.config/nvim/",
       --     ["nvim"] = "/home/tj/build/neovim",
       --   },
+    },
+    file_browser = {
+      -- disables netrw and use telescope-file-browser in its place
+      hijack_netrw = true,
     },
   },
 }

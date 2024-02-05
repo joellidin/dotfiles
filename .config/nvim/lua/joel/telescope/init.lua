@@ -100,7 +100,9 @@ function M.edit_zsh()
 end
 
 function M.fd()
-  local opts = themes.get_ivy { hidden = false }
+  local opts = themes.get_ivy {
+    hidden = false,
+  }
   require("telescope.builtin").fd(opts)
 end
 
@@ -114,21 +116,22 @@ function M.git_files()
     path = nil
   end
 
-  local width = 0.25
-  if path and string.find(path, "sourcegraph.*sourcegraph", 1, false) then
-    width = 0.5
-  end
+  local width = 0.4
 
   local opts = themes.get_dropdown {
     winblend = 5,
     previewer = false,
     shorten_path = false,
-
     cwd = path,
 
     layout_config = {
       width = width,
     },
+  }
+  opts.borderchars = {
+    prompt = { " ", " ", " ", " ", " ", " ", " ", " " },
+    results = { " ", " ", " ", " ", " ", " ", " ", " " },
+    preview = { " ", " ", " ", " ", " ", " ", " ", " " },
   }
 
   require("telescope.builtin").git_files(opts)
@@ -138,7 +141,7 @@ function M.buffer_git_files()
   require("telescope.builtin").git_files(themes.get_dropdown {
     cwd = vim.fn.expand "%:p:h",
     winblend = 10,
-    border = true,
+    border = false,
     previewer = false,
     shorten_path = false,
   })
@@ -147,7 +150,7 @@ end
 function M.lsp_code_actions()
   local opts = themes.get_dropdown {
     winblend = 10,
-    border = true,
+    border = false,
     previewer = false,
     shorten_path = false,
   }
@@ -217,10 +220,16 @@ end
 function M.curbuf()
   local opts = themes.get_dropdown {
     winblend = 10,
-    border = true,
+    border = false,
     previewer = false,
     shorten_path = false,
   }
+  opts.borderchars = {
+    prompt = { " ", " ", " ", " ", " ", " ", " ", " " },
+    results = { " ", " ", " ", " ", " ", " ", " ", " " },
+    preview = { " ", " ", " ", " ", " ", " ", " ", " " },
+  }
+
   require("telescope.builtin").current_buffer_fuzzy_find(opts)
 end
 
@@ -250,12 +259,16 @@ function M.file_browser()
       local current_picker = action_state.get_current_picker(prompt_bufnr)
 
       local modify_cwd = function(new_cwd)
-        current_picker.cwd = new_cwd
-        current_picker:refresh(opts.new_finder(new_cwd), { reset_prompt = true })
+        local finder = current_picker.finder
+
+        finder.path = new_cwd
+        finder.files = true
+        current_picker:refresh(finder, { reset_prompt = true })
       end
 
       map("i", "-", function()
         modify_cwd(current_picker.cwd .. "/..")
+        require "notify"(current_picker.cwd .. "/..")
       end)
 
       map("i", "~", function()
@@ -264,7 +277,8 @@ function M.file_browser()
 
       local modify_depth = function(mod)
         return function()
-          opts.depth = opts.depth + mod
+          opts.depth = (opts.depth or 0) + mod
+          require "notify"("" .. opts.depth)
 
           local this_picker = action_state.get_current_picker(prompt_bufnr)
           this_picker:refresh(opts.new_finder(current_picker.cwd), { reset_prompt = true })
@@ -289,15 +303,19 @@ end
 function M.git_status()
   local opts = themes.get_dropdown {
     winblend = 10,
-    border = true,
-    previewer = false,
+    border = false,
+    previewer = true,
     shorten_path = false,
+    layout_config = {
+      preview_width = 0.65,
+    },
   }
 
   -- Can change the git icons using this.
   -- opts.git_icons = {
   --   changed = "M"
   -- }
+  opts.borderchars = nil
 
   require("telescope.builtin").git_status(opts)
 end
