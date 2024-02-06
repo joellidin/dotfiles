@@ -79,6 +79,7 @@ plugins=(
   git-auto-fetch
   zsh-autosuggestions
   history-substring-search
+  zsh-fzf-history-search
   zsh-syntax-highlighting
   gopass
   kubectl
@@ -105,6 +106,8 @@ zle -N globalias
 # space expands all aliases, including global
 bindkey -M emacs "^ " globalias
 bindkey -M viins "^ " globalias
+bindkey -M viins "^R" fzf_history_search
+bindkey -M vicmd "^R" fzf_history_search 
 
 # control-space to make a normal space
 bindkey -M emacs " " magic-space
