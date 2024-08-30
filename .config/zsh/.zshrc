@@ -144,9 +144,6 @@ export WORKON_HOME=$HOME/.local/share/virtualenvs
 VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3
 . /usr/local/bin/virtualenvwrapper.sh
 
-# pyenv
-eval "$(pyenv init --path)"
-
 if [ -f $HOME/.config/shell/aliasrc ]; then
     . $HOME/.config/shell/aliasrc
 fi
@@ -182,9 +179,19 @@ unsetopt PROMPT_SP
 # Set vi mode
 setopt vi
 
-# Bind keys
-bindkey -s ^f "tmux-sessionizer\n"
+function tmux_sessionizer() {
+    zle push-input
+    BUFFER="tmux display-popup -E 'tmux-sessionizer' > /dev/null 2>&1 || tmux-sessionizer > /dev/null"
+    zle accept-line
+}
 
+# Bind keys
+zle -N tmux_sessionizer
+bindkey -M viins '^f' tmux_sessionizer
+bindkey -M vicmd '^f' tmux_sessionizer
 # clean up 
 # compinit -d $XDG_CACHE_HOME/zsh/zcompdump-$ZSH_VERSION
 zstyle ':completion:*' cache-path $XDG_CACHE_HOME/zsh/zcompcache
+. "/home/jlidin/.local/share/cargo/env"
+
+. "$HOME/.local/share/cargo/env"
