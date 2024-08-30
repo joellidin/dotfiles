@@ -9,17 +9,13 @@ require("neodev").setup {
 }
 
 local M = {}
-M.on_attach = function(client, bufnr)
+M.on_attach = function(_, bufnr)
   local function buf_set_keymap(...)
     vim.api.nvim_buf_set_keymap(bufnr, ...)
   end
 
-  local function buf_set_option(...)
-    vim.api.nvim_buf_set_option(bufnr, ...)
-  end
-
   -- Enable completion triggered by <c-x><c-o>
-  buf_set_option("omnifunc", "v:lua.vim.lsp.omnifunc")
+  vim.opt_local.omnifunc = "v:lua.vim.lsp.omnifunc"
 
   -- Mappings.
   local opts = { noremap = true, silent = true }
@@ -52,6 +48,18 @@ M.on_attach = function(client, bufnr)
 end
 
 local function lspSymbol(name, icon)
+  -- vim.diagnostic.config {
+  --   signs = {
+  --     text = {
+  --       [vim.diagnostic.severity.ERROR] = "",
+  --       [vim.diagnostic.severity.INFO] = "",
+  --       [vim.diagnostic.severity.HINT] = "",
+  --       -- [vim.diagnostic.severity.] = "",
+  --       [vim.diagnostic.severity.WARN] = "",
+  --     },
+  --   },
+  -- }
+
   vim.fn.sign_define("DiagnosticSign" .. name, { text = icon, numhl = "DiagnosticDefault" .. name })
 end
 
@@ -59,7 +67,7 @@ lspSymbol("Error", "")
 lspSymbol("Information", "")
 lspSymbol("Hint", "")
 lspSymbol("Info", "")
-lspSymbol("Warning", "")
+lspSymbol("Warn", "")
 
 -- Use a loop to conveniently call 'setup' on multiple servers and
 -- map buffer local keybindings when the language server attaches
@@ -75,7 +83,7 @@ local servers = {
   "sqlls",
   "texlab",
   "yamlls",
-  "ruff_lsp",
+  "ruff",
 }
 
 -- Register a handler that will be called for each installed server when it's ready (i.e. when installation is finished
@@ -96,9 +104,15 @@ for _, lsp in pairs(servers) do
       debounce_text_changes = 150,
     },
     settings = {
+      pyright = {
+        -- Using Ruff's import organizer
+        disableOrganizeImports = true,
+      },
       python = {
         analysis = {
-          typeCheckingMode = "on",
+          typeCheckingMode = "standard",
+          -- Ignore all files for analysis to exclusively use Ruff for linting
+          -- ignore = { "*" },
         },
       },
       ["rust-analyzer"] = {

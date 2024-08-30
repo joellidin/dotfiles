@@ -28,6 +28,12 @@ require("lazy").setup {
   "ray-x/lsp_signature.nvim",
   "L3MON4D3/LuaSnip", -- Snippets plugin
   "folke/neodev.nvim", -- Lua development from folke
+  {
+    "zk-org/zk-nvim",
+    config = function()
+      require("zk").setup {}
+    end,
+  },
 
   -- Flutter
   {
@@ -68,7 +74,7 @@ require("lazy").setup {
 
   -- Git
   "TimUntersberger/neogit",
-  "sindrets/diffview.nvim",
+  { "sindrets/diffview.nvim", enabled = false },
   "rhysd/committia.vim",
 
   "rhysd/git-messenger.vim",
@@ -107,7 +113,8 @@ require("lazy").setup {
   -- ChatGPT
   {
     "jackMort/ChatGPT.nvim",
-    -- event = "VeryLazy",
+    cmd = "ChatGPT",
+    event = "VeryLazy",
     ft = { "markdown", "python", "rust", "go" },
     config = function()
       require("chatgpt").setup {
@@ -154,6 +161,7 @@ require("lazy").setup {
       "nvim-lua/plenary.nvim",
       "nvim-telescope/telescope.nvim",
     },
+    enabled = false,
   },
 
   -- Completion

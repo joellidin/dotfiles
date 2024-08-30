@@ -14,13 +14,13 @@ nnoremap { "<leader>hl", require("harpoon.ui").toggle_quick_menu }
 
 for i = 1, 5 do
   nnoremap {
-    string.format("<space>%s", i),
+    string.format("<leader>%s", i),
     function()
       require("harpoon.ui").nav_file(i)
     end,
   }
   nnoremap {
-    string.format("<space>t%s", i),
+    string.format("<leader>t%s", i),
     function()
       require("harpoon.term").gotoTerminal(i)
     end,
