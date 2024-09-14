@@ -54,9 +54,8 @@ export GOMODCACHE="${XDG_CACHE_HOME-$HOME/.cache}/go/mod"
 # Vault address for work
 export VAULT_ADDR="https://vault.eu.aws.volvocars.ai"
 
-# Rye
-. "$HOME/.rye/env"
-
 export PATH=$GOPATH/bin:/usr/local/go/bin:$HOME/.local/share/npm/bin:$HOME/.local/share/n/bin:$HOME/.pub-cache/bin:$PATH
 
 . $CARGO_HOME/env
+
+. "$HOME/.local/share/cargo/env"
