@@ -1,53 +1,143 @@
 #!/bin/sh
 
 otp_print () {
+    pin=$(
+      rofi -password -dmenu -p "Yubikey PIN" \
+           -theme $HOME/.config/rofi/launchers/password/style.rasi \
+           -theme-str 'window { location: 8; anchor: 6; }' \
+           -location 2
+    )
     # Check if Yubikey is inserted and working
-    ykman oath accounts list >/dev/null 2>&1 || { notify-send "Yubikey not inserted" ; exit 0; }
+    ykman oath accounts list --password $pin >/dev/null 2>&1 || { notify-send "Yubikey not inserted" ; exit 0; }
 
     # Query account to print otp
-    account="$(ykman oath accounts list | sed "s/:/: /g" | dmenu -i -p "Choose account")" || exit 1
-    ykman oath accounts code -s "$(echo $account | sed "s/: /:/g")" | xdotool type --clearmodifiers --file - && xdotool key KP_Enter
+    account="$(
+      ykman oath accounts list --password $pin \
+      | sed "s/:/: /g" \
+      | rofi -dmenu -p "Choose account" \
+             -theme "$HOME/.config/rofi/launchers/type-6/style-1.rasi" \
+             -matching fuzzy -i \
+             -sort \
+             -sorting-method fzf \
+             -normal-window \
+             -theme-str 'window { location: 8; anchor: 6; }' \
+             -location 2
+    )" || exit 1
+    ykman oath accounts code --password $pin -s "$(echo $account | sed "s/: /:/g")" | xdotool type --clearmodifiers --file - && xdotool key KP_Enter
     notify-send "Printed oath for $account"
 }
 
 otp_copy () {
+    pin=$(
+      rofi -password -dmenu -p "Yubikey PIN" \
+           -theme $HOME/.config/rofi/launchers/password/style.rasi \
+           -theme-str 'window { location: 8; anchor: 6; }' \
+           -location 2
+    )
     # Check if Yubikey is inserted and working
-    ykman oath accounts list >/dev/null 2>&1 || { notify-send "Yubikey not inserted" ; exit 0; }
+    ykman oath accounts list --password $pin >/dev/null 2>&1 || { notify-send "Yubikey not inserted" ; exit 0; }
 
     # Query account to print otp
-    account="$(ykman oath accounts list | sed "s/:/: /g" | dmenu -i -p "Choose account")" || exit 1
-    ykman oath accounts code -s "$(echo $account | sed "s/: /:/g")" | xclip -selection c
+    account="$(
+      ykman oath accounts list --password $pin \
+      | sed "s/:/: /g" \
+      | rofi -dmenu -p "Choose account" \
+             -theme "$HOME/.config/rofi/launchers/type-6/style-1.rasi" \
+             -matching fuzzy -i \
+             -sort \
+             -sorting-method fzf \
+             -normal-window \
+             -theme-str 'window { location: 8; anchor: 6; }' \
+             -location 2
+    )" || exit 1
+    ykman oath accounts code --password $pin -s "$(echo $account | sed "s/: /:/g")" | xclip -selection c
     notify-send "Copied oath for $account"
 }
 
 password_print () {
-    account="$(gopass ls --flat websites | cut -d "/" -f 2,3 | dmenu -i -p "Choose account")" || exit 1
+    account="$(
+      gopass ls --flat websites \
+      | cut -d "/" -f 2,3 \
+      | rofi -dmenu -p "Choose account" \
+             -theme "$HOME/.config/rofi/launchers/type-6/style-7.rasi" \
+             -matching fuzzy -i \
+             -sort \
+             -sorting-method fzf \
+             -normal-window \
+             -theme-str 'window { location: 8; anchor: 6; }' \
+             -location 2
+    )" || exit 1
+
     notify-send "Touch Yubikey"
     gopass show -o "websites/$account" | xdotool type --clearmodifiers --file - && xdotool key KP_Enter
     notify-send "Printed password for:" "$account"
 }
 
 password_copy () {
-    account="$(gopass ls --flat websites | cut -d "/" -f 2,3 | dmenu -i -p "Choose account")" || exit 1
+    account="$(
+      gopass ls --flat websites \
+      | cut -d "/" -f 2,3 \
+      | rofi -dmenu -p "Choose account" \
+             -theme "$HOME/.config/rofi/launchers/type-6/style-7.rasi" \
+             -matching fuzzy -i \
+             -sort \
+             -sorting-method fzf \
+             -normal-window \
+             -theme-str 'window { location: 8; anchor: 6; }' \
+             -location 2
+    )" || exit 1
     notify-send "Touch Yubikey"
     gopass show -c "websites/$account" >/dev/null 2>&1
 }
 
 username_print () {
-    account="$(gopass ls --flat websites | cut -d "/" -f 2,3 | dmenu -i -p "Choose account")" || exit 1
+    account="$(
+      gopass ls --flat websites \
+      | cut -d "/" -f 2,3 \
+      | rofi -dmenu -p "Choose account" \
+             -theme "$HOME/.config/rofi/launchers/type-6/style-7.rasi" \
+             -matching fuzzy -i \
+             -sort \
+             -sorting-method fzf \
+             -normal-window \
+             -theme-str 'window { location: 8; anchor: 6; }' \
+             -location 2
+    )" || exit 1
     notify-send "Touch Yubikey"
     gopass show -f "websites/$account" username | head -n 1 | xdotool type --clearmodifiers --file -
     notify-send "Printed username for:" "$(echo $account | cut -d '/' -f 1)"
 }
 
 username_copy () {
-    account="$(gopass ls --flat websites | cut -d "/" -f 2,3 | dmenu -i -p "Choose account")" || exit 1
+    account="$(
+      gopass ls --flat websites \
+      | cut -d "/" -f 2,3 \
+      | rofi -dmenu -p "Choose account" \
+             -theme "$HOME/.config/rofi/launchers/type-6/style-7.rasi" \
+             -matching fuzzy -i \
+             -sort \
+             -sorting-method fzf \
+             -normal-window \
+             -theme-str 'window { location: 8; anchor: 6; }' \
+             -location 2
+    )" || exit 1
     notify-send "Touch Yubikey"
     gopass show -c -f "websites/$account" username >/dev/null 2>&1
 }
 
 user_pass_insert () {
-    account="$(gopass ls --flat websites | cut -d "/" -f 2,3 | dmenu -i -p "Choose account")" || exit 1
+    account="$(
+      gopass ls --flat websites \
+      | cut -d "/" -f 2,3 \
+      | rofi -dmenu -p "Choose account" \
+             -theme "$HOME/.config/rofi/launchers/type-6/style-7.rasi" \
+             -matching fuzzy -i \
+             -sort \
+             -sorting-method fzf \
+             -normal-window \
+             -theme-str 'window { location: 8; anchor: 6; }' \
+             -location 2
+    )" || exit 1
     notify-send "Touch Yubikey"
     gopass show -f "websites/$account" username | head -n 1 | xdotool type --clearmodifiers --file - && xdotool key Tab
     notify-send "Printed username for:" "$(echo $account | cut -d '/' -f 1)"
@@ -55,12 +145,28 @@ user_pass_insert () {
     notify-send "Printed password for:" "$account"
 }
 
-case "$(printf "(1) password and username\\n(2) password\\n(3) username\\n(4) one time password\\n(5) password (copy)\\n(6) username (copy)\\n(7) one time password (copy)" | dmenu -l 7 -i -p "Choose what to insert")" in
-    "(1) password and username") user_pass_insert ;;
-    "(2) password") password_print ;;
-	"(3) username") username_print ;;
-	"(4) one time password") otp_print ;;
-	"(5) password (copy)") password_copy ;;
-	"(6) username (copy)") username_copy ;;
-	"(7) one time password (copy)") otp_copy ;;
+choice="$(
+  printf "%s\n" \
+    "(1) password and username" \
+    "(2) password" \
+    "(3) username" \
+    "(4) one time password" \
+    "(5) password (copy)" \
+    "(6) username (copy)" \
+    "(7) one time password (copy)" \
+  | rofi -dmenu -i -p "Choose what to insert" \
+         -theme "$HOME/.config/rofi/launchers/type-6/style-7.rasi" \
+         -normal-window \
+         -theme-str 'window { location: 8; anchor: 6; }' \
+         -location 2
+)"
+
+case "$choice" in
+  "(1) password and username") user_pass_insert ;;
+  "(2) password")              password_print   ;;
+  "(3) username")              username_print   ;;
+  "(4) one time password")     otp_print        ;;
+  "(5) password (copy)")       password_copy    ;;
+  "(6) username (copy)")       username_copy    ;;
+  "(7) one time password (copy)") otp_copy      ;;
 esac
