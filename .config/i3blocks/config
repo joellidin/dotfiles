@@ -99,22 +99,7 @@ min_width=bat:
 
 [shutdown_menu]
 full_text= 
-# If you are using FontAwesome, we recommend the power-off icon:
-# http://fontawesome.io/icon/power-off/
-command=$HOME/.local/bin/shutdown_menu
-# FG_COLOR=#3c3836
-# BG_COLOR=#d5c4a1
-# HLFG_COLOR=#d5c4a1
-# HLBG_COLOR=#3c3836
-# BORDER_COLOR=#222222
-ROFI_TEXT=Options
-ROFI_OPTIONS=-width 15 -location 3
-#ZENITY_TITLE=Menu
-#ZENITY_TEXT=Action:
-#ZENITY_OPTIONS=--column= --hide-header
-#ENABLE_CONFIRMATIONS=true (must be true or false)
-#LAUNCHER=rofi (must be rofi or zenity)
-LOCKSCRIPT=$HOME/.local/bin/i3-lock-custom
+command=$HOME/.config/rofi/powermenu/type-1/powermenu.sh
 
 # Generic media player support
 #

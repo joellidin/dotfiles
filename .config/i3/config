@@ -262,6 +262,9 @@ bindsym $mod+Shift+9	move container to workspace number $ws9
 bindsym $mod+Shift+0	move container to workspace number $ws10
 
 
+for_window [class="Rofi"] sticky enable
+for_window [class="Rofi"] border pixel 0px
+for_window [class="Rofi"] floating enable
 for_window [class="Pinentry"] sticky enable
 for_window [class="sent"] border pixel 0px
 for_window [title="GIMP Startup"] move workspace number $ws5
@@ -269,6 +272,7 @@ for_window [class="Gimp"] move workspace number $ws5
 for_window [window_role="GtkFileChooserDialog"] resize set 800 600
 for_window [window_role="GtkFileChooserDialog"] move position center
 for_window [title="Default - Wine desktop"] floating enable
+for_window [workspace=$ws7] floating enable
 
 # Bindings to make the webcam float and stick.
 for_window [title="mpvfloat"] floating enable
@@ -317,4 +321,5 @@ exec_always --no-startup-id exec i3-workspace-names-daemon
 # workspace 4 output eDP-1 eDP1 secondary
 
 assign [class="Slack"] 4
+assign [class="Chromium"] $ws7
 assign [class="Brave-browser"] 1
