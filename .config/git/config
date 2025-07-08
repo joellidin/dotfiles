@@ -2,9 +2,9 @@
 	helper = 
 	helper = !/usr/bin/gh auth git-credential
 [user]
-	email = joel.lidin@volvocars.com
+	email = joellidin@gmail.com
 	name = Joel Lidin
-	signingkey = 99B478EFF8ED88CD
+	signingkey = 2D4B1A763449FE07B4F23B832C9D6FE03574E023
 [commit]
 	gpgsign = true
 [core]
@@ -17,9 +17,12 @@
     side-by-side = true
     file-modified-label = modified
     navigate = true
+    diff-so-fancy=true
     ; word-diff-regex = .
 [init]
 	defaultBranch = main
+[merge]
+    conflictstyle = diff3
 [pull]
 	rebase = true
 [fetch]
@@ -27,3 +30,12 @@
 [credential "https://gist.github.com"]
 	helper = 
 	helper = !/usr/bin/gh auth git-credential
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+[alias]
+	update-branch = "!f() { branch=$(git symbolic-ref --short HEAD); if [ \"$branch\" = \"main\" ]; then git pull; else git fetch origin main:main && git rebase main; fi; }; f"
+[rerere]
+	enabled = true
