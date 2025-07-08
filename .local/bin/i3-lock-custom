@@ -6,6 +6,7 @@ SCREENSHOT="maim $PICTURE"
 BLUR="21x17"
 
 $SCREENSHOT
-convert $PICTURE -blur $BLUR $PICTURE
-i3lock -i $PICTURE
+# convert $PICTURE -blur $BLUR $PICTURE
+betterlockscreen -u $PICTURE --fx blur,pixel --blur 1.0
+betterlockscreen --lock pixel
 rm $PICTURE

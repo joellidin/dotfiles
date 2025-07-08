@@ -1,17 +1,17 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Displays the default device, volume, and mute status for i3blocks
 
 set -a
 
-AUDIO_HIGH_SYMBOL=${AUDIO_HIGH_SYMBOL:-"<span size='large'></span>"}
+AUDIO_HIGH_SYMBOL=${AUDIO_HIGH_SYMBOL:-'  '}
 
-AUDIO_MED_THRESH=${AUDIO_MED_THRESH:-30}
-AUDIO_MED_SYMBOL=${AUDIO_MED_SYMBOL:-"<span size='large'></span>"}
+AUDIO_MED_THRESH=${AUDIO_MED_THRESH:-50}
+AUDIO_MED_SYMBOL=${AUDIO_MED_SYMBOL:-'  '}
 
-AUDIO_LOW_THRESH=${AUDIO_LOW_THRESH:-10}
-AUDIO_LOW_SYMBOL=${AUDIO_LOW_SYMBOL:-"<span size='large'></span>"}
+AUDIO_LOW_THRESH=${AUDIO_LOW_THRESH:-0}
+AUDIO_LOW_SYMBOL=${AUDIO_LOW_SYMBOL:-'  '}
 
-AUDIO_MUTED_SYMBOL=${AUDIO_MUTED_SYMBOL:-"<span size='xx-large'></span>"}
+AUDIO_MUTED_SYMBOL=${AUDIO_MUTED_SYMBOL:-'  '}
 
 AUDIO_DELTA=${AUDIO_DELTA:-5}
 
@@ -19,8 +19,8 @@ DEFAULT_COLOR=${DEFAULT_COLOR:-"#ffffff"}
 MUTED_COLOR=${MUTED_COLOR:-"#a0a0a0"}
 
 LONG_FORMAT=${LONG_FORMAT:-'${SYMB} ${VOL}% [${INDEX}:${NAME}]'}
-SHORT_FORMAT=${SHORT_FORMAT:-'${SYMB} ${VOL}%'}
-USE_ALSA_NAME=${USE_ALSA_NAME:-0}
+SHORT_FORMAT=${SHORT_FORMAT:-'${SYMB} ${VOL}% [${INDEX}]'}
+USE_ALSA_NAME=${USE_ALSA_NAME:-1}
 USE_DESCRIPTION=${USE_DESCRIPTION:-1}
 
 SUBSCRIBE=${SUBSCRIBE:-0}
@@ -48,7 +48,7 @@ while getopts F:Sf:adH:M:L:X:T:t:C:c:i:m:s:h opt; do
         s) SCONTROL="$OPTARG" ;;
         h) printf \
 "Usage: volume-pulseaudio [-S] [-F format] [-f format] [-p] [-a|-d] [-H symb] [-M symb]
-        [-L symb] [-X symb] [-T thresh] [-t thresh] [-C color] [-c color] [-i inter]
+        [-L symb] [-X symb] [-T thresh] [-t thresh] [-C color] [-c color] [-i inter] 
         [-m mixer] [-s scontrol] [-h]
 Options:
 -F, -f\tOutput format (-F long format, -f short format) to use, with exposed variables:
@@ -88,20 +88,21 @@ CAPABILITY=$(amixer -D $MIXER get $SCONTROL | sed -n "s/  Capabilities:.*cvolume
 
 function move_sinks_to_new_default {
     DEFAULT_SINK=$1
-    pacmd list-sink-inputs | grep index: | grep -o '[0-9]\+' | while read SINK
+    pactl list sink-inputs | grep 'Sink Input #' | grep -o '[0-9]\+' | while read SINK
     do
-        pacmd move-sink-input $SINK $DEFAULT_SINK
+        pactl move-sink-input $SINK $DEFAULT_SINK
     done
 }
 
 function set_default_playback_device_next {
     inc=${1:-1}
-    num_devices=$(pacmd list-sinks | grep -c index:)
-    sink_arr=($(pacmd list-sinks | grep index: | grep -o '[0-9]\+'))
-    default_sink_index=$(( $(pacmd list-sinks | grep index: | grep -no '*' | grep -o '^[0-9]\+') - 1 ))
+    num_devices=$(pactl list sinks | grep -c Name:)
+    sink_arr=($(pactl list sinks | grep Name: | sed -r 's/\s+Name: (.+)/\1/'))
+    default_sink=$(pactl get-default-sink)
+    default_sink_index=$(for i in "${!sink_arr[@]}"; do if [[ "$default_sink" = "${sink_arr[$i]}" ]]; then echo "$i"; fi done)
     default_sink_index=$(( ($default_sink_index + $num_devices + $inc) % $num_devices ))
     default_sink=${sink_arr[$default_sink_index]}
-    pacmd set-default-sink $default_sink
+    pactl set-default-sink $default_sink
     move_sinks_to_new_default $default_sink
 }
 
@@ -118,33 +119,28 @@ function print_format {
 }
 
 function print_block {
-    ACTIVE=$(pacmd list-sinks | grep "state\: RUNNING" -B4 -A7 | grep "index:\|name:\|volume: \(front\|mono\)\|muted:")
-    [ -z "$ACTIVE" ] && ACTIVE=$(pacmd list-sinks | grep "index:\|name:\|volume: \(front\|mono\)\|muted:" | grep -A3 '*')
-    for name in INDEX NAME VOL MUTED; do
-        read $name
+    ACTIVE="$(pactl list sinks  | grep "State\: RUNNING" -B4 -A55)"
+    if [[ $ACTIVE = "" ]] ; then
+        ACTIVE="$(pactl list sinks | grep "$(pactl get-default-sink)" -B4 -A55)"
+    fi
+    ACTIVE="$(echo "$ACTIVE" | grep "Name:\|Volume: \(front-left\|mono\)\|Mute:\|api.alsa.pcm.card = \|node.nick = ")"
+    for Name in NAME MUTED VOL INDEX NICK; do
+        read $Name
     done < <(echo "$ACTIVE")
-    INDEX=$(echo "$INDEX" | grep -o '[0-9]\+')
+    INDEX=$(echo "$INDEX"  | grep -o '".*"' | sed 's/"//g')
     VOL=$(echo "$VOL" | grep -o "[0-9]*%" | head -1 )
     VOL="${VOL%?}"
-
-    NAME=$(echo "$NAME" | sed \
-'s/.*<.*\.\(.*\)>.*/\1/; t;'\
-'s/.*<\(.*\)>.*/\1/; t;'\
-'s/.*/unknown/')
+    NAME=$(echo "$NICK" | grep -o '".*"' | sed 's/"//g')
 
     if [[ $USE_ALSA_NAME == 1 ]] ; then
-        ALSA_NAME=$(pacmd list-sinks |\
+        ALSA_NAME=$(pactl list sinks |\
 awk '/^\s*\*/{f=1}/^\s*index:/{f=0}f' |\
 grep "alsa.name\|alsa.mixer_name" |\
 head -n1 |\
 sed 's/.*= "\(.*\)".*/\1/')
         NAME=${ALSA_NAME:-$NAME}
     elif [[ $USE_DESCRIPTION == 1 ]] ; then
-        DESCRIPTION=$(pacmd list-sinks |\
-awk '/^\s*\*/{f=1}/^\s*index:/{f=0}f' |\
-grep "device.description" |\
-head -n1 |\
-sed 's/.*= "\(.*\)".*/\1/')
+        DESCRIPTION=$(pactl list sinks  | grep "State\: RUNNING" -B4 -A55 | grep 'Description: ' | sed 's/^.*: //')
         NAME=${DESCRIPTION:-$NAME}
     fi
 
@@ -156,6 +152,11 @@ sed 's/.*= "\(.*\)".*/\1/')
     else
         SYMB=$AUDIO_MUTED_SYMBOL
         COLOR=$MUTED_COLOR
+    fi
+
+    if [[ $ACTIVE = "" ]] ; then
+        echo "Sound inactive"
+        COLOR='#222225'
     fi
 
     if [[ $SUBSCRIBE == 1 ]] ; then
