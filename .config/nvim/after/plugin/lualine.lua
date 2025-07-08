@@ -9,7 +9,17 @@ require("lualine").setup {
   },
   sections = {
     lualine_a = { "mode" },
-    lualine_b = { "branch", "diff", { "diagnostics", sources = { "nvim_lsp", "coc" } } },
+    lualine_b = {
+      "branch",
+      "diff",
+      {
+        "diagnostics",
+        -- use the new built-in diagnostics API
+        sources = { "nvim_diagnostic" },
+        sections = { "error", "warn", "info", "hint" }, -- optional: order & filter
+        -- symbols = { error = "E:", warn = "W:", info = "I:", hint = "H:" },
+      },
+    },
     lualine_c = { { "filename", path = 1 } },
     lualine_x = { "encoding", "fileformat", "filetype" },
     lualine_y = { "progress" },

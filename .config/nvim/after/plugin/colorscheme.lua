@@ -43,7 +43,7 @@ require("rose-pine").setup {
     TelescopePromptNormal = { fg = "text", bg = "surface" },
     TelescopePromptBorder = { fg = "surface", bg = "surface" },
 
-    TreeSitterContext = { fg = "subtle", bg = "overlay" },
+    TreesitterContext = { fg = "subtle", bg = "overlay" },
   },
 }
 vim.cmd.colorscheme "rose-pine"

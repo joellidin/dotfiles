@@ -23,9 +23,9 @@ M.on_attach = function(_, bufnr)
   -- See `:help vim.lsp.*` for documentation on any of the below functions
   buf_set_keymap("n", "gD", "<cmd>lua vim.lsp.buf.declaration()<CR>", opts)
   buf_set_keymap("n", "gd", "<cmd>lua vim.lsp.buf.definition()<CR>", opts)
-  buf_set_keymap("n", "K", "<cmd>lua vim.lsp.buf.hover()<CR>", opts)
+  buf_set_keymap("n", "K", '<cmd>lua vim.lsp.buf.hover({ border = "rounded" })<CR>', opts)
   buf_set_keymap("n", "gi", "<cmd>lua vim.lsp.buf.implementation()<CR>", opts)
-  buf_set_keymap("n", "<C-k>", "<cmd>lua vim.lsp.buf.signature_help()<CR>", opts)
+  buf_set_keymap("n", "<C-k>", '<cmd>lua vim.lsp.buf.signature_help({ border = "rounded" })<CR>', opts)
   buf_set_keymap("n", "<space>wa", "<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>", opts)
   buf_set_keymap("n", "<space>wr", "<cmd>lua vim.lsp.buf.remove_workspace_folder()<CR>", opts)
   buf_set_keymap("n", "<space>wl", "<cmd>lua print(vim.inspect(vim.lsp.buf.list_workspace_folders()))<CR>", opts)
@@ -34,8 +34,8 @@ M.on_attach = function(_, bufnr)
   buf_set_keymap("n", "<space>ca", "<cmd>lua vim.lsp.buf.code_action()<CR>", opts)
   buf_set_keymap("n", "gr", "<cmd>lua vim.lsp.buf.references()<CR>", opts)
   buf_set_keymap("n", "<space>e", "<cmd>lua vim.diagnostic.open_float({source = 'always'})<CR>", opts)
-  buf_set_keymap("n", "[d", "<cmd>lua vim.diagnostic.goto_prev()<CR>", opts)
-  buf_set_keymap("n", "]d", "<cmd>lua vim.diagnostic.goto_next()<CR>", opts)
+  buf_set_keymap("n", "[d", "<cmd>lua vim.diagnostic.jump({count=-1, float=true})<CR>", opts)
+  buf_set_keymap("n", "]d", "<cmd>lua vim.diagnostic.jump({count=1, float=true})<CR>", opts)
   buf_set_keymap("n", "<space>q", "<cmd>lua vim.diagnostic.setloclist()<CR>", opts)
   buf_set_keymap("n", "<space>f", "<cmd>lua vim.lsp.buf.format { async = true }<CR>", opts)
 
@@ -47,27 +47,27 @@ M.on_attach = function(_, bufnr)
   }
 end
 
-local function lspSymbol(name, icon)
-  -- vim.diagnostic.config {
-  --   signs = {
-  --     text = {
-  --       [vim.diagnostic.severity.ERROR] = "",
-  --       [vim.diagnostic.severity.INFO] = "",
-  --       [vim.diagnostic.severity.HINT] = "",
-  --       -- [vim.diagnostic.severity.] = "",
-  --       [vim.diagnostic.severity.WARN] = "",
-  --     },
-  --   },
-  -- }
-
-  vim.fn.sign_define("DiagnosticSign" .. name, { text = icon, numhl = "DiagnosticDefault" .. name })
-end
-
-lspSymbol("Error", "")
-lspSymbol("Information", "")
-lspSymbol("Hint", "")
-lspSymbol("Info", "")
-lspSymbol("Warn", "")
+-- ✨ Put this once in your startup files (before any LSP attaches)
+vim.diagnostic.config {
+  signs = {
+    -- Set the icon shown in the sign column for each severity
+    text = {
+      [vim.diagnostic.severity.ERROR] = "",
+      [vim.diagnostic.severity.WARN] = "",
+      [vim.diagnostic.severity.INFO] = "",
+      [vim.diagnostic.severity.HINT] = "",
+    },
+    -- Optional: keep number-column colours or line-highlights
+    numhl = {
+      [vim.diagnostic.severity.ERROR] = "DiagnosticSignError",
+      [vim.diagnostic.severity.WARN] = "DiagnosticSignWarn",
+      [vim.diagnostic.severity.INFO] = "DiagnosticSignInfo",
+      [vim.diagnostic.severity.HINT] = "DiagnosticSignHint",
+    },
+  },
+  -- any other diagnostic options you use…
+  virtual_text = true,
+}
 
 -- Use a loop to conveniently call 'setup' on multiple servers and
 -- map buffer local keybindings when the language server attaches
@@ -84,6 +84,7 @@ local servers = {
   "texlab",
   "yamlls",
   "ruff",
+  "vale_ls",
 }
 
 -- Register a handler that will be called for each installed server when it's ready (i.e. when installation is finished
@@ -94,7 +95,8 @@ require("mason").setup {
 }
 require("mason-lspconfig").setup {
   automatic_installation = true,
-  ensure_installed = servers,
+  ensure_installed = {},
+  automatic_enable = false,
 }
 local nvim_lsp = require "lspconfig"
 for _, lsp in pairs(servers) do
@@ -179,13 +181,5 @@ end
 -- end
 --
 -- vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(custom_on_publish_diagnostics, {})
-
-vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(vim.lsp.handlers.hover, {
-  border = "double",
-})
-
-vim.lsp.handlers["textDocument/signatureHelp"] = vim.lsp.with(vim.lsp.handlers.signature_help, {
-  border = "double",
-})
 
 return M
