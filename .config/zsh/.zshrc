@@ -76,13 +76,13 @@ ZSH_THEME=""
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
   git
-  git-auto-fetch
   zsh-autosuggestions
   history-substring-search
   zsh-fzf-history-search
   zsh-syntax-highlighting
   gopass
   kubectl
+  uv
 )
 
 # zcompdump clean up for oh-my-zsh
@@ -139,11 +139,6 @@ bindkey -M isearch " " magic-space
 # For a full list of active aliases, run `alias`.
 #
 
-# Virtualenvwrapper settings:
-export WORKON_HOME=$HOME/.local/share/virtualenvs
-VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3
-. /usr/local/bin/virtualenvwrapper.sh
-
 if [ -f $HOME/.config/shell/aliasrc ]; then
     . $HOME/.config/shell/aliasrc
 fi
@@ -195,3 +190,5 @@ zstyle ':completion:*' cache-path $XDG_CACHE_HOME/zsh/zcompcache
 . "/home/jlidin/.local/share/cargo/env"
 
 . "$HOME/.local/share/cargo/env"
+
+. "$HOME/.local/share/../bin/env"
