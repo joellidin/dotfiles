@@ -1,8 +1,4 @@
 [kubernetes]
 # format = '[$symbol $context \($namespace\)](dimmed green) '
 style = 'dimmed green'
-disabled = false
-
-[kubernetes.context_aliases]
-'eu-aws-volvocars-ai' = 'prd'
-'JLIDIN-eu-aws-volvocars-ai' = 'jlidin-prd'
+disabled = true
