@@ -1,5 +1,5 @@
 !! set Xft dpi
-Xft.dpi: 192
+Xft.dpi: 196
 
 !! Transparency (0-1):
 st.alpha: 0.95
