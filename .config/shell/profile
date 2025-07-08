@@ -9,13 +9,13 @@ export PATH="$PATH:$HOME/.local/bin"
 
 # Default programs
 export EDITOR="nvim"
-export TERMINAL="st"
+export TERMINAL="ghostty"
 export BROWSER="brave-browser"
 
 # Other program settings
 export SUDO_ASKPASS="$HOME/.local/bin/dmenupass"
 # Use nvim as man pager
-export MANPAGER='nvim +Man!'
+export MANPAGER="nvim +Man!"
 export ZK_NOTEBOOK_DIR=$HOME/notes
 
 # ~/ Clean-up:
@@ -23,7 +23,7 @@ export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_DATA_HOME="$HOME/.local/share"
 export XDG_CACHE_HOME="$HOME/.cache"
 export XDG_STATE_HOME="$HOME/.local/state"
-export XINITRC="${XDG_CONFIG_HOME:-$HOME/.config}/x11/xinitrc"
+export XINITRC="${XDG_CONFIG_HOME:-$HOME/.config}/x12/xinitrc"
 export HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/history"
 #export XAUTHORITY="$XDG_RUNTIME_DIR/Xauthority" # This line will break some DMs.
 export NOTMUCH_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/notmuch-config"
@@ -39,23 +39,23 @@ export NPM_CONFIG_USERCONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/npm/npmrc"
 export NODE_REPL_HISTORY="${XDG_DATA_HOME-$HOME/.local/share}/node_repl_history"
 export N_PREFIX="${XDG_DATA_HOME-$HOME/.local/share}/n"
 # flutter
-export PATH="$PATH:$HOME/.local/src/flutter/bin"
-export CHROME_EXECUTABLE="/usr/bin/brave-browser" # Wanted by flutter doctor
-export no_proxy="127.0.0.1,::1:$no_proxy"
-export NO_PROXY="127.0.0.1,::1:$NO_PROXY"
-export ANDROID_USER_HOME="${XDG_CONFIG_HOME:-$HOME/.config}/.android/"
-export ANDROID_EMULATOR_HOME="${ANDROID_USER_HOME}"
-export ANDROID_HOME="${XDG_DATA_HOME-$HOME/.local/share}/Android/Sdk"
+# export PATH="$PATH:$HOME/.local/src/flutter/bin"
+# export CHROME_EXECUTABLE="/usr/bin/brave-browser" # Wanted by flutter doctor
+# export no_proxy="127.0.0.1,::1:$no_proxy"
+# export NO_PROXY="127.0.0.1,::1:$NO_PROXY"
+# export ANDROID_USER_HOME="${XDG_CONFIG_HOME:-$HOME/.config}/.android/"
+# export ANDROID_EMULATOR_HOME="${ANDROID_USER_HOME}"
+# export ANDROID_HOME="${XDG_DATA_HOME-$HOME/.local/share}/Android/Sdk"
 # gopass
 export PASSWORD_STORE_DIR="${XDG_DATA_HOME-$HOME/.local/share}/gopass/stores/root"
 # golang
 export GOPATH="${XDG_DATA_HOME-$HOME/.local/share}/go"
 export GOMODCACHE="${XDG_CACHE_HOME-$HOME/.cache}/go/mod"
-# Vault address for work
-export VAULT_ADDR="https://vault.eu.aws.volvocars.ai"
 
 export PATH=$GOPATH/bin:/usr/local/go/bin:$HOME/.local/share/npm/bin:$HOME/.local/share/n/bin:$HOME/.pub-cache/bin:$PATH
 
 . $CARGO_HOME/env
 
 . "$HOME/.local/share/cargo/env"
+
+. "$HOME/.local/share/../bin/env"
