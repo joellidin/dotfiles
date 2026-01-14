@@ -102,7 +102,7 @@ bindsym $mod+y                  exec setsid -f mpv "$(xclip -o)"
 bindsym $mod+Shift+space        floating toggle
 bindsym $mod+space		focus mode_toggle
 
-bindsym $mod+Ctrl+space         exec "$HOME/.local/bin/i3-keyboard-layout cycle us,se se && pkill -RTMIN+7 i3blocks && $HOME/.local/bin/remaps"
+bindsym $mod+Ctrl+space           exec "$HOME/.local/bin/i3-keyboard-layout cycle us,se se && pkill -RTMIN+7 i3blocks && $HOME/.local/bin/remaps"
 # bindsym $mod+Pause              exec $HOME/.scripts/toggle_microphone.sh
 
 bindsym $mod+Escape		workspace prev
@@ -302,9 +302,25 @@ bindsym $mod+Shift+Down		move down
 bindsym $mod+Shift+Up		move up
 bindsym $mod+Shift+Right 	move right
 
-bindsym XF86AudioRaiseVolume exec amixer -q -D pulse sset Master 5%+ && pkill -RTMIN+10 i3blocks
-bindsym XF86AudioLowerVolume exec amixer -q -D pulse sset Master 5%- && pkill -RTMIN+10 i3blocks
-bindsym XF86AudioMute exec amixer -q -D pulse sset Master toggle && pkill -RTMIN+10 i3blocks
+bindsym XF86AudioRaiseVolume exec wpctl set-volume  @DEFAULT_AUDIO_SINK@  5%+   && pkill -RTMIN+10 i3blocks
+bindsym XF86AudioLowerVolume exec wpctl set-volume  @DEFAULT_AUDIO_SINK@  5%-   && pkill -RTMIN+10 i3blocks
+bindsym XF86AudioMute        exec wpctl set-mute    @DEFAULT_AUDIO_SINK@  toggle && pkill -RTMIN+10 i3blocks
+
+# ─────────── Audio – microphone ───────────
+# mute / un‑mute default *source* (mic) and refresh i3blocks
+bindsym XF86AudioMicMute exec wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle && \
+                          pkill -RTMIN+10 i3blocks
+
+# ─────────── Media keys (playerctl) ───────────
+bindsym XF86AudioPlay        exec playerctl play-pause
+bindsym XF86AudioNext        exec playerctl next
+bindsym XF86AudioPrev        exec playerctl previous
+bindsym XF86AudioStop        exec playerctl stop
+
+# ─────────── Screen brightness (brightnessctl) ───────────
+# 5 % steps; change to 10% if you prefer
+bindsym XF86MonBrightnessUp   exec brightnessctl set +5%
+bindsym XF86MonBrightnessDown exec brightnessctl set  5%-
 
 focus_on_window_activation focus
 
