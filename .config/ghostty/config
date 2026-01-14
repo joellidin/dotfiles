@@ -11,6 +11,7 @@ keybind = alt+d=scroll_page_down
 font-feature = -calt
 
 theme = Chalkboard
+# theme = CLRS
 window-decoration = false
 background-opacity = 0.95
 unfocused-split-opacity = 0.7
