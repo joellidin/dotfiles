@@ -1,2 +1,1 @@
-ZDOTDIR=/home/jlidin/.config/zsh/
-. "/home/jlidin/.config/cargo/env"
+export ZDOTDIR="$HOME/.config/zsh"
