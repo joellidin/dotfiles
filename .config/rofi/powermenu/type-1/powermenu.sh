@@ -95,8 +95,10 @@ case ${chosen} in
 		run_cmd --reboot
         ;;
     $lock)
-		if [[ -x '/usr/bin/betterlockscreen' ]]; then
+		if [[ -x '$HOME/.local/bin/i3-lock-custom' ]]; then
 			betterlockscreen -l
+        elif [[ -x '/usr/local/bin/betterlockscreen' ]]; then
+			betterlockscreen -l blur
 		elif [[ -x '/usr/bin/i3lock' ]]; then
 			i3lock
 		fi
