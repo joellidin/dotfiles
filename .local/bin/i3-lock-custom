@@ -1,12 +1,17 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# i3-lock-custom
 
-PICTURE=/tmp/i3lock.png
-SCREENSHOT="maim $PICTURE"
+set -euo pipefail
 
-BLUR="21x17"
+WALL="$HOME/.local/share/bg"          # symlink to your background
+CACHE="$HOME/.cache/betterlockscreen" # where the processed image lives
+EFFECTS="blur,pixel"                  # lock‑screen look
+BLUR_STRENGTH="1.05"                   # blur amount
 
-$SCREENSHOT
-# convert $PICTURE -blur $BLUR $PICTURE
-betterlockscreen -u $PICTURE --fx blur,pixel --blur 1.0
-betterlockscreen --lock pixel
-rm $PICTURE
+# (Re)build cache only if it doesn't exist or wallpaper is newer
+if [[ ! -d "$CACHE" || "$WALL" -nt "$CACHE" ]]; then
+    betterlockscreen -u "$WALL" --fx "$EFFECTS" --blur "$BLUR_STRENGTH"
+fi
+
+# Lock with the cached image
+betterlockscreen -l blur

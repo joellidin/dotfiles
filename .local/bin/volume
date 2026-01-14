@@ -3,15 +3,15 @@
 
 set -a
 
-AUDIO_HIGH_SYMBOL=${AUDIO_HIGH_SYMBOL:-'  '}
+AUDIO_HIGH_SYMBOL=${AUDIO_HIGH_SYMBOL:-' '}
 
 AUDIO_MED_THRESH=${AUDIO_MED_THRESH:-50}
-AUDIO_MED_SYMBOL=${AUDIO_MED_SYMBOL:-'  '}
+AUDIO_MED_SYMBOL=${AUDIO_MED_SYMBOL:-' '}
 
 AUDIO_LOW_THRESH=${AUDIO_LOW_THRESH:-0}
-AUDIO_LOW_SYMBOL=${AUDIO_LOW_SYMBOL:-'  '}
+AUDIO_LOW_SYMBOL=${AUDIO_LOW_SYMBOL:-' '}
 
-AUDIO_MUTED_SYMBOL=${AUDIO_MUTED_SYMBOL:-'  '}
+AUDIO_MUTED_SYMBOL=${AUDIO_MUTED_SYMBOL:-' '}
 
 AUDIO_DELTA=${AUDIO_DELTA:-5}
 
@@ -72,10 +72,12 @@ Options:
     esac
 done
 
-if [[ -z "$MIXER" ]] ; then
+if [[ -z "$MIXER" ]]; then
     MIXER="default"
     if amixer -D pulse info >/dev/null 2>&1 ; then
-        MIXER="pulse"
+        MIXER="pulse"      # real PulseAudio
+    elif amixer -D pipewire info >/dev/null 2>&1 ; then
+        MIXER="pipewire"   # PipeWire’s ALSA card
     fi
 fi
 
@@ -108,8 +110,8 @@ function set_default_playback_device_next {
 
 case "$BLOCK_BUTTON" in
     1) set_default_playback_device_next ;;
-    2) amixer -q -D $MIXER sset $SCONTROL $CAPABILITY toggle ;;
-    3) set_default_playback_device_next -1 ;;
+    2) set_default_playback_device_next -1 ;;
+    3) amixer -q -D $MIXER sset $SCONTROL $CAPABILITY toggle ;;
     4) amixer -q -D $MIXER sset $SCONTROL $CAPABILITY $AUDIO_DELTA%+ ;;
     5) amixer -q -D $MIXER sset $SCONTROL $CAPABILITY $AUDIO_DELTA%- ;;
 esac
@@ -119,29 +121,46 @@ function print_format {
 }
 
 function print_block {
-    ACTIVE="$(pactl list sinks  | grep "State\: RUNNING" -B4 -A55)"
-    if [[ $ACTIVE = "" ]] ; then
-        ACTIVE="$(pactl list sinks | grep "$(pactl get-default-sink)" -B4 -A55)"
-    fi
-    ACTIVE="$(echo "$ACTIVE" | grep "Name:\|Volume: \(front-left\|mono\)\|Mute:\|api.alsa.pcm.card = \|node.nick = ")"
-    for Name in NAME MUTED VOL INDEX NICK; do
-        read $Name
-    done < <(echo "$ACTIVE")
-    INDEX=$(echo "$INDEX"  | grep -o '".*"' | sed 's/"//g')
-    VOL=$(echo "$VOL" | grep -o "[0-9]*%" | head -1 )
-    VOL="${VOL%?}"
-    NAME=$(echo "$NICK" | grep -o '".*"' | sed 's/"//g')
+    DEFAULT=$(pactl get-default-sink)      # e.g. bluez_output.98_7E:…
+    ACTIVE=$(pactl list sinks | awk -v s="$DEFAULT" '
+        $0 ~ "^Sink #"       {blk=0}           # end previous block
+        $0 ~ "Name: "s      {blk=1}            # start default‑sink block
+        blk && NF           {print}            # print until blank line
+        blk && NF==0        {exit}
+    ')
+    # index number (used only for display)
+    INDEX=$(echo "$ACTIVE" | awk '/index:/ {print $2; exit}' | tr -d '#')
 
-    if [[ $USE_ALSA_NAME == 1 ]] ; then
-        ALSA_NAME=$(pactl list sinks |\
-awk '/^\s*\*/{f=1}/^\s*index:/{f=0}f' |\
-grep "alsa.name\|alsa.mixer_name" |\
-head -n1 |\
-sed 's/.*= "\(.*\)".*/\1/')
-        NAME=${ALSA_NAME:-$NAME}
-    elif [[ $USE_DESCRIPTION == 1 ]] ; then
-        DESCRIPTION=$(pactl list sinks  | grep "State\: RUNNING" -B4 -A55 | grep 'Description: ' | sed 's/^.*: //')
-        NAME=${DESCRIPTION:-$NAME}
+    # first “Volume:” line → first number ending in %
+    VOL=$(echo "$ACTIVE" | \
+          awk '/Volume:/ {for (i=1;i<=NF;i++) if ($i ~ /[0-9]+%/) {print $i; exit}}')
+    VOL=${VOL%\%}     # strip trailing “%”
+
+    # muted state
+    MUTED=$(echo "$ACTIVE" | awk '/Mute:/ {print $2; exit}')
+    # 2) PulseAudio “Description:” line
+    [[ -z $NAME ]] && \
+      NAME=$(echo "$ACTIVE" | sed -n 's/^.*Description:[[:space:]]*//p' | head -n1)
+    #
+    # 3) PipeWire Bluetooth device.description
+    [[ -z $NAME ]] && \
+      NAME=$(echo "$ACTIVE" | sed -n 's/.*device\.description = "\(.*\)".*/\1/p' | head -n1)
+
+    # 4) PipeWire / BlueZ alias set via `bluetoothctl alias …`
+    [[ -z $NAME ]] && \
+      NAME=$(echo "$ACTIVE" | sed -n 's/.*device\.alias = "\(.*\)".*/\1/p' | head -n1)
+
+    # 5) Fallback: ask bluetoothctl directly (needs MAC address from sink)
+    if [[ -z $NAME ]]; then
+        MAC=$(echo "$ACTIVE" | sed -n 's/.*device\.string = "\(.*\)".*/\1/p' | head -n1)
+        if [[ -n $MAC ]]; then
+            NAME=$(bluetoothctl info "$MAC" | awk -F': ' '/Alias:/ {print $2; exit}')
+        fi
+    fi
+
+    if [[ $USE_ALSA_NAME == 1 ]]; then
+        ALSA_NAME=$(echo "$ACTIVE" | grep -m1 'alsa\.name' | sed 's/.*= "\(.*\)".*/\1/')
+        [[ -n $ALSA_NAME ]] && NAME=$ALSA_NAME
     fi
 
     if [[ $MUTED =~ "no" ]] ; then

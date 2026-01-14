@@ -15,10 +15,8 @@ tmux_running=$(($(pgrep -c tmux) - 1))
 
 if [ -z $TMUX ] && [ $tmux_running -eq 0 ]; then
   tmux new-session -ds $selected_name -c $selected
-  if [ -f "$selected/.venv" ]; then
+  if [ -d "$selected/.venv" ]; then
     tmux send-keys -t $selected_name.0 "source .venv/bin/activate" ENTER
-    # elif [ -f "$selected/pdm.lock" ]; then
-    #   tmux send-keys -t $selected_name.0 "eval $(pdm venv -p $selected activate)" ENTER "clear" ENTER
   fi
   tmux a -t $selected_name
   exit 0
@@ -26,10 +24,8 @@ fi
 
 if ! tmux has-session -t=$selected_name 2> /dev/null; then
   tmux new-session -ds $selected_name -c $selected
-  if [ -f "$selected/.venv" ]; then
+  if [ -d "$selected/.venv" ]; then
     tmux send-keys -t $selected_name.0 "source .venv/bin/activate" ENTER
-  # elif [ -f "$selected/pdm.lock" ]; then
-  #   tmux send-keys -t $selected_name.0 "eval $(pdm venv -p $selected activate)" ENTER "clear" ENTER
   fi
 fi
 
