@@ -3,7 +3,7 @@ source $HOME/.config/zsh/.zprofile
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
 # Path to your oh-my-zsh installation.
-export ZSH="/home/jlidin/.local/src/oh-my-zsh"
+# export ZSH="/home/jlidin/.local/src/oh-my-zsh"
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time oh-my-zsh is loaded, in which case,
@@ -83,6 +83,7 @@ plugins=(
   gopass
   kubectl
   uv
+  rust
 )
 
 # zcompdump clean up for oh-my-zsh
@@ -187,7 +188,6 @@ bindkey -M vicmd '^f' tmux_sessionizer
 # clean up 
 # compinit -d $XDG_CACHE_HOME/zsh/zcompdump-$ZSH_VERSION
 zstyle ':completion:*' cache-path $XDG_CACHE_HOME/zsh/zcompcache
-. "/home/jlidin/.local/share/cargo/env"
 
 . "$HOME/.local/share/cargo/env"
 

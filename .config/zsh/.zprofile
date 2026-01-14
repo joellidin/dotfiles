@@ -1,1 +1,1 @@
-/home/jlidin/.config/shell/profile
+../shell/profile
