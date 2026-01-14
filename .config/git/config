@@ -32,8 +32,8 @@
 	helper = !/usr/bin/gh auth git-credential
 [filter "lfs"]
 	clean = git-lfs clean -- %f
-	smudge = git-lfs smudge -- %f
-	process = git-lfs filter-process
+	smudge = git-lfs smudge --skip -- %f
+	process = git-lfs filter-process --skip
 	required = true
 [alias]
 	update-branch = "!f() { branch=$(git symbolic-ref --short HEAD); if [ \"$branch\" = \"main\" ]; then git pull; else git fetch origin main:main && git rebase main; fi; }; f"
