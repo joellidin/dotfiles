@@ -78,7 +78,8 @@ local servers = {
   "gopls",
   -- "ltex",
   "lua_ls",
-  "pyright",
+  -- "ty",
+  -- "basedpyright",
   "rust_analyzer",
   "sqlls",
   "texlab",
@@ -110,6 +111,11 @@ for _, lsp in pairs(servers) do
         -- Using Ruff's import organizer
         disableOrganizeImports = true,
       },
+      basedpyright = {
+        analysis = {
+          typeCheckingMode = "basic", -- "basic"/"off" work too
+        },
+      },
       python = {
         analysis = {
           typeCheckingMode = "standard",
@@ -125,6 +131,18 @@ for _, lsp in pairs(servers) do
     },
   }
 end
+
+-- ty: make it use the same on_attach as everything else
+vim.lsp.config("ty", {
+  on_attach = M.on_attach,
+  settings = {
+    ty = {
+      -- ty language server settings go here
+    },
+  },
+})
+
+vim.lsp.enable "ty"
 
 local capabilities = vim.lsp.protocol.make_client_capabilities()
 capabilities.textDocument.completion.completionItem.snippetSupport = true
