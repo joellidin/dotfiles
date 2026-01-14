@@ -19,6 +19,7 @@ alias c4vpn="remove-proxy && pritunl-client-electron </dev/null &> /dev/null &"
 
 alias v="nvim"
 alias nv="nvim"
+alias sxiv="nsxiv"
 
 alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 
