@@ -337,4 +337,9 @@ M.ascii_art = {
   },
 }
 
+function M.random_header()
+  math.randomseed(os.time())
+  return table.concat(M.ascii_art[math.random(1, #M.ascii_art)], "\n")
+end
+
 return M
