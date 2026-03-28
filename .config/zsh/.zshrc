@@ -192,3 +192,6 @@ zstyle ':completion:*' cache-path $XDG_CACHE_HOME/zsh/zcompcache
 . "$HOME/.local/share/cargo/env"
 
 . "$HOME/.local/share/../bin/env"
+
+# Basilica CLI
+. "$HOME/.basilica/env"
