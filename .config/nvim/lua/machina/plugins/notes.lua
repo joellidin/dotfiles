@@ -351,9 +351,22 @@ return {
             :lower():gsub("[^%w]+", "-"):gsub("^-+|-+$", "")
         end
 
-        -- Default to tmux session name in kebab-case
+        -- Default to tmux session name in kebab-case (strip branch suffix for worktree sessions)
         local session = vim.fn.system("tmux display-message -p '#S'"):gsub("%s+", "")
-        local default = (session ~= "" and vim.v.shell_error == 0) and to_kebab(session) or ""
+        local default = ""
+        if session ~= "" and vim.v.shell_error == 0 then
+          local kebab = to_kebab(session)
+          -- Check if this looks like a worktree session (project-branch); match against existing projects
+          local projects = vim.fn.glob(vim.fn.expand("~/notes") .. "/projects/*/", false, true)
+          for _, dir in ipairs(projects) do
+            local name = dir:match("projects/(.+)/$")
+            if name and kebab:sub(1, #name) == name and (#kebab == #name or kebab:sub(#name + 1, #name + 1) == "-") then
+              default = name
+              break
+            end
+          end
+          if default == "" then default = kebab end
+        end
         local name = vim.fn.input("Project name: ", default)
         if name == "" then return end
 
@@ -386,15 +399,28 @@ return {
         local session = vim.fn.system("tmux display-message -p '#S'"):gsub("%s+", "")
         local norm_session = normalize(session)
 
-        -- Search project folders for a normalized match
+        -- Search project folders for a normalized match (exact, then prefix for worktree sessions)
         local projects = vim.fn.glob(vault .. "/projects/*/", false, true)
+        local best_match, best_len = nil, 0
         for _, dir in ipairs(projects) do
           local name = dir:match("projects/(.+)/$")
-          if name and normalize(name) == norm_session then
-            local todos = dir .. "todos.md"
-            vim.cmd("edit " .. todos)
-            return
+          if name then
+            local norm_name = normalize(name)
+            if norm_name == norm_session then
+              -- Exact match (non-bare repo session)
+              vim.cmd("edit " .. dir .. "todos.md")
+              return
+            end
+            -- Prefix match for worktree sessions (e.g., session "templar-main" matches project "templar")
+            if #norm_name > best_len and norm_session:sub(1, #norm_name) == norm_name then
+              best_match = dir
+              best_len = #norm_name
+            end
           end
+        end
+        if best_match then
+          vim.cmd("edit " .. best_match .. "todos.md")
+          return
         end
 
         -- Fall back to picker of all project todos
