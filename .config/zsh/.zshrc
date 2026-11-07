@@ -175,17 +175,31 @@ unsetopt PROMPT_SP
 # Set vi mode
 setopt vi
 
-function tmux_sessionizer() {
+# herdr starts a fresh shell in the project dir for every new pane, tab and workspace.
+# This replaces the tmux send-keys "source .venv/bin/activate" hack in the c, D and
+# sessionizer bindings. Drop the HERDR_ENV test to get the same behaviour everywhere.
+if [[ -n $HERDR_ENV && -z $VIRTUAL_ENV && -d .venv ]]; then
+    source .venv/bin/activate
+fi
+
+# Project switcher on ^f. Replaces the old tmux_sessionizer widget.
+#   inside herdr   -> herdr-sessionizer focuses or creates a workspace
+#   inside tmux    -> the existing tmux-sessionizer popup
+#   plain terminal -> herdr-sessionizer starts or attaches herdr in the chosen project
+# No stdout redirect on the herdr branch: the script may exec the herdr TUI.
+function sessionizer() {
     zle push-input
-    BUFFER="tmux display-popup -E 'tmux-sessionizer' > /dev/null 2>&1 || tmux-sessionizer > /dev/null"
+    if [[ -n $TMUX && -z $HERDR_ENV ]]; then
+        BUFFER="tmux display-popup -E 'tmux-sessionizer' > /dev/null 2>&1 || tmux-sessionizer > /dev/null"
+    else
+        BUFFER="herdr-sessionizer"
+    fi
     zle accept-line
 }
-
-# Bind keys
-zle -N tmux_sessionizer
-bindkey -M viins '^f' tmux_sessionizer
-bindkey -M vicmd '^f' tmux_sessionizer
-# clean up 
+zle -N sessionizer
+bindkey -M viins '^f' sessionizer
+bindkey -M vicmd '^f' sessionizer
+# clean up
 # compinit -d $XDG_CACHE_HOME/zsh/zcompdump-$ZSH_VERSION
 zstyle ':completion:*' cache-path $XDG_CACHE_HOME/zsh/zcompcache
 

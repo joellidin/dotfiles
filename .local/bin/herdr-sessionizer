@@ -1,0 +1,79 @@
+#!/usr/bin/sh
+# herdr port of ~/.local/bin/tmux-sessionizer.
+# Pick a project directory with fzf, then focus the herdr workspace for it, creating one if needed.
+# tmux session  ->  herdr workspace.  Same directory list and same naming rules as the tmux script.
+#
+# Usage: herdr-sessionizer [dir]
+#        HERDR_SESSIONIZER_DRY_RUN=1 herdr-sessionizer [dir]   # print the action, change nothing
+
+herdr_bin="${HERDR_BIN_PATH:-herdr}"
+
+if [ $# -eq 1 ]; then
+  selected=$1
+else
+  selected=$(
+    {
+      find "$HOME/Documents/" "$HOME/" "$HOME/.config/" -mindepth 1 -maxdepth 1 -type d
+      # Worktree dirs inside bare repos
+      for bare in "$HOME"/Documents/*/.bare; do
+        [ -d "$bare" ] && git -C "$(dirname "$bare")" worktree list --porcelain 2>/dev/null \
+          | grep '^worktree ' | sed 's/^worktree //' | grep -v '\.bare$'
+      done
+    } | sort -u | fzf
+  )
+fi
+
+[ -z "$selected" ] && exit 0
+selected=$(cd "$selected" 2>/dev/null && pwd -P) || exit 1
+
+# Walk up to find a bare repo root (directory containing .bare/)
+find_bare_root() {
+  dir="$1"
+  while [ "$dir" != "/" ]; do
+    [ -d "$dir/.bare" ] && echo "$dir" && return 0
+    dir="$(dirname "$dir")"
+  done
+  return 1
+}
+
+# Smart naming: inside a bare repo use "project-branch", otherwise the basename
+bare_root=$(find_bare_root "$selected")
+if [ -n "$bare_root" ]; then
+  project_name=$(basename "$bare_root" | tr . _)
+  rel_path=$(echo "$selected" | sed "s|^$bare_root/||" | tr '/' '-' | tr . _)
+  selected_name="${project_name}-${rel_path}"
+else
+  selected_name=$(basename "$selected" | tr . _)
+fi
+
+# Outside herdr with no server running: start herdr in the chosen directory.
+# `workspace list` needs the server socket, so it fails cleanly when nothing is running.
+if [ -z "$HERDR_ENV" ] && ! "$herdr_bin" workspace list >/dev/null 2>&1; then
+  [ -n "$HERDR_SESSIONIZER_DRY_RUN" ] && { echo "would: cd $selected && herdr"; exit 0; }
+  cd "$selected" && exec "$herdr_bin"
+fi
+
+# Existing workspace? Match the label first, then any pane whose cwd is the directory.
+ws_id=$("$herdr_bin" workspace list 2>/dev/null \
+  | jq -r --arg l "$selected_name" '.result.workspaces[] | select(.label == $l) | .workspace_id' | head -n1)
+if [ -z "$ws_id" ]; then
+  ws_id=$("$herdr_bin" pane list 2>/dev/null \
+    | jq -r --arg d "$selected" '.result.panes[] | select(.cwd == $d) | .workspace_id' | head -n1)
+fi
+
+if [ -n "$HERDR_SESSIONIZER_DRY_RUN" ]; then
+  if [ -n "$ws_id" ]; then echo "would: herdr workspace focus $ws_id   ($selected_name)"
+  else echo "would: herdr workspace create --cwd $selected --label $selected_name --focus"; fi
+  exit 0
+fi
+
+if [ -n "$ws_id" ]; then
+  "$herdr_bin" workspace focus "$ws_id" >/dev/null || exit 1
+else
+  # .venv activation happens in .zshrc when the new shell starts (see zshrc snippet).
+  "$herdr_bin" workspace create --cwd "$selected" --label "$selected_name" --focus >/dev/null || exit 1
+fi
+
+# Outside herdr (plain terminal) attach to the session now that the workspace exists.
+[ -z "$HERDR_ENV" ] && exec "$herdr_bin"
+exit 0
