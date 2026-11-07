@@ -7,10 +7,12 @@ keybind = alt+k=scroll_page_lines:-10
 keybind = alt+j=scroll_page_lines:10
 keybind = alt+u=scroll_page_up
 keybind = alt+d=scroll_page_down
+# Ghostty default for ctrl+enter is toggle_fullscreen, which hides the i3 bar like $mod+b
+keybind = ctrl+enter=unbind
 
 font-feature = -calt
 
-theme = Chalkboard
+theme = dark:Chalkboard,light:Modus Operandi Tinted
 # theme = CLRS
 window-decoration = false
 background-opacity = 0.90
