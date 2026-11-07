@@ -1,0 +1,8 @@
+#!/bin/sh
+# git pager: run delta with the feature set matching the desktop theme.
+# darkman (see theme-mode) answers in a few ms; without it, let delta query the terminal.
+case "$(darkman get 2>/dev/null)" in
+  light) exec delta --features light-mode "$@" ;;
+  dark)  exec delta --features dark-mode "$@" ;;
+  *)     exec delta --detect-dark-light auto "$@" ;;
+esac

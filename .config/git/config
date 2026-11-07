@@ -8,17 +8,38 @@
 [commit]
 	gpgsign = true
 [core]
-    pager = delta
+    pager = delta-auto
 [interactive]
-    diffFilter = delta --color-only
+    diffFilter = delta-auto --color-only
 [delta]
     line-numbers = true
-    syntax-theme = gruvbox-dark
     side-by-side = true
     file-modified-label = modified
     navigate = true
-    diff-so-fancy=true
     ; word-diff-regex = .
+    ; syntax-theme and diff-so-fancy live in the two feature sets below; the
+    ; delta-auto pager picks one from the desktop theme (darkman).
+[delta "dark-mode"]
+    dark = true
+    syntax-theme = gruvbox-dark
+    diff-so-fancy = true
+[delta "light-mode"]
+    light = true
+    syntax-theme = gruvbox-light
+    ; diff-so-fancy look with light emphasis backgrounds instead of 52/22
+    commit-style = raw
+    file-style = bold blue
+    hunk-header-style = bold syntax
+    minus-style = bold red
+    minus-non-emph-style = bold red
+    minus-emph-style = bold red 224
+    minus-empty-line-marker-style = normal "#ffd7d7"
+    plus-style = bold green
+    plus-non-emph-style = bold green
+    plus-emph-style = bold green 194
+    plus-empty-line-marker-style = normal "#d7ffd7"
+    file-added-label = added:
+    file-removed-label = removed:
 [init]
 	defaultBranch = main
 [merge]
