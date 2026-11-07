@@ -111,10 +111,6 @@ return {
       require("obsidian").setup {
         legacy_commands = false,
 
-        completion = {
-          blink = false, -- let markdown_oxide handle completions
-        },
-
         workspaces = {
           {
             name = "notes",
@@ -166,10 +162,10 @@ return {
         },
 
         picker = {
-          name = "snacks.pick",
+          name = "snacks.picker",
         },
 
-        preferred_link_style = "wiki",
+        link = { style = "wiki" },
 
         ---@diagnostic disable-next-line: missing-fields
         ui = {
