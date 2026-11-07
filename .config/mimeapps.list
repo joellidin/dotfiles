@@ -9,7 +9,7 @@ application/x-extension-shtml=zen-browser.desktop
 application/xhtml+xml=zen-browser.desktop
 application/x-extension-xhtml=zen-browser.desktop
 application/x-extension-xht=zen-browser.desktop
-application/pdf=zen-browser.desktop
+application/pdf=org.pwmt.zathura.desktop
 x-scheme-handler/claude-cli=claude-code-url-handler.desktop
 
 [Added Associations]
@@ -23,4 +23,4 @@ application/x-extension-shtml=zen-browser.desktop;
 application/xhtml+xml=zen-browser.desktop;
 application/x-extension-xhtml=zen-browser.desktop;
 application/x-extension-xht=zen-browser.desktop;
-application/pdf=zen-browser.desktop;
+application/pdf=org.pwmt.zathura.desktop;
