@@ -1,0 +1,4 @@
+[mounts]
+	path = ${XDG_DATA_HOME:-~/.local/share}/gopass/stores/root
+[recipients]
+	hash = bdb52c8cb08c8b209c406ba590a1aaa2e7a7e43b0b6018bb501e214db9d77cc2
