@@ -30,6 +30,8 @@ return {
   -- Refactoring
   {
     "ThePrimeagen/refactoring.nvim",
+    -- async.nvim is required on Neovim 0.12 (vim.async only exists from 0.13)
+    dependencies = { "lewis6991/async.nvim" },
     config = function()
       require("refactoring").setup {
         prompt_func_return_type = {

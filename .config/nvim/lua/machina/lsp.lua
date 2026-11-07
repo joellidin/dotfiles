@@ -26,11 +26,15 @@ local function on_attach(_, bufnr)
   map("n", "<leader>e", function()
     vim.diagnostic.open_float { source = true }
   end, "Show diagnostics")
+  -- `float = true` is deprecated in Neovim 0.12+; `on_jump` opens the float instead.
+  local function show_float(_, buf)
+    vim.diagnostic.open_float { bufnr = buf, scope = "cursor", focus = false }
+  end
   map("n", "[d", function()
-    vim.diagnostic.jump { count = -1, float = true }
+    vim.diagnostic.jump { count = -1, on_jump = show_float }
   end, "Prev diagnostic")
   map("n", "]d", function()
-    vim.diagnostic.jump { count = 1, float = true }
+    vim.diagnostic.jump { count = 1, on_jump = show_float }
   end, "Next diagnostic")
   map("n", "<leader>q", vim.diagnostic.setloclist, "Diagnostics to loclist")
 
