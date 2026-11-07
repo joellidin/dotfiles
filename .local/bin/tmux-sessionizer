@@ -3,34 +3,63 @@
 if [ $# -eq 1 ]; then
   selected=$1
 else
-  selected=$(find $HOME/Documents/ $HOME/ $HOME/.config/ -mindepth 1 -maxdepth 1 -type d | fzf)
+  selected=$(
+    {
+      find $HOME/Documents/ $HOME/ $HOME/.config/ -mindepth 1 -maxdepth 1 -type d
+      # Find worktree dirs inside bare repos using git worktree list
+      for bare in $HOME/Documents/*/.bare; do
+        [ -d "$bare" ] && git -C "$(dirname "$bare")" worktree list --porcelain 2>/dev/null \
+          | grep '^worktree ' | sed 's/^worktree //' | grep -v '\.bare$'
+      done
+    } | sort -u | fzf
+  )
 fi
 
-if [ -z $selected ]; then
+if [ -z "$selected" ]; then
   exit 0
 fi
 
-selected_name=$(basename "$selected" | tr . _)
+# Walk up to find bare repo root (look for .bare/ directory)
+find_bare_root() {
+  dir="$1"
+  while [ "$dir" != "/" ]; do
+    [ -d "$dir/.bare" ] && echo "$dir" && return 0
+    dir="$(dirname "$dir")"
+  done
+  return 1
+}
+
+# Smart naming: if inside a bare repo, use "project-branch" format
+bare_root=$(find_bare_root "$selected")
+if [ -n "$bare_root" ]; then
+  project_name=$(basename "$bare_root" | tr . _)
+  # Relative path from bare root, slashes become dashes
+  rel_path=$(echo "$selected" | sed "s|^$bare_root/||" | tr '/' '-' | tr . _)
+  selected_name="${project_name}-${rel_path}"
+else
+  selected_name=$(basename "$selected" | tr . _)
+fi
+
 tmux_running=$(($(pgrep -c tmux) - 1))
 
-if [ -z $TMUX ] && [ $tmux_running -eq 0 ]; then
-  tmux new-session -ds $selected_name -c $selected
+if [ -z "$TMUX" ] && [ "$tmux_running" -eq 0 ]; then
+  tmux new-session -ds "$selected_name" -c "$selected"
   if [ -d "$selected/.venv" ]; then
-    tmux send-keys -t $selected_name.0 "source .venv/bin/activate" ENTER
+    tmux send-keys -t "$selected_name.0" "source .venv/bin/activate" ENTER
   fi
-  tmux a -t $selected_name
+  tmux a -t "$selected_name"
   exit 0
 fi
 
-if ! tmux has-session -t=$selected_name 2> /dev/null; then
-  tmux new-session -ds $selected_name -c $selected
+if ! tmux has-session -t="$selected_name" 2> /dev/null; then
+  tmux new-session -ds "$selected_name" -c "$selected"
   if [ -d "$selected/.venv" ]; then
-    tmux send-keys -t $selected_name.0 "source .venv/bin/activate" ENTER
+    tmux send-keys -t "$selected_name.0" "source .venv/bin/activate" ENTER
   fi
 fi
 
-if [ -z $TMUX ]; then
-  tmux a -t $selected_name
+if [ -z "$TMUX" ]; then
+  tmux a -t "$selected_name"
 else
-  tmux switch-client -t $selected_name
+  tmux switch-client -t "$selected_name"
 fi
