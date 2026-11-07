@@ -1,0 +1,3 @@
+#!/usr/bin/sh
+# darkman hook: $1 is "dark" or "light"
+exec "$HOME/.local/bin/theme-mode" apply "$1"

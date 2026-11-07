@@ -1,0 +1,6 @@
+# darkman: sunrise/sunset based dark/light switching. man darkman.conf
+lat: 25.2
+lng: 55.3
+usegeoclue: false
+# The gtk portal backend already publishes the colour scheme from gsettings; theme-mode sets that.
+portal: false

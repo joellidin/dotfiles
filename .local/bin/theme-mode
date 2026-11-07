@@ -1,0 +1,50 @@
+#!/usr/bin/sh
+# theme-mode: dark/light switching for this desktop.
+#
+#   theme-mode dark | light | toggle   change mode (through darkman when it runs, so its state stays in sync)
+#   theme-mode status                  print the current mode
+#   theme-mode apply <dark|light>      apply a mode to the desktop; this is what the darkman hook calls
+#
+# Chain: darkman (sunrise/sunset, toggle) -> ~/.local/share/{dark,light}-mode.d/theme-mode hook -> theme-mode apply
+#        -> gsettings color-scheme -> xdg-desktop-portal (gtk) -> Ghostty light:/dark: -> herdr auto_switch
+#        -> ~/.config/gtk-3.0/settings.ini for GTK3 apps started later
+#        -> ~/.config/theme-mode/hooks.d/* <mode> for anything else (nvim, ...)
+
+cfg_dir="${XDG_CONFIG_HOME:-$HOME/.config}"
+darkman_bin="$HOME/.local/bin/darkman"
+darkman_up() { "$darkman_bin" get >/dev/null 2>&1; }   # true when the darkman service answers on D-Bus
+
+current() {
+  case "$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null)" in
+    *prefer-light*) echo light ;;
+    *) echo dark ;;
+  esac
+}
+
+apply() {
+  mode=$1
+  if [ "$mode" = dark ]; then gtk_theme="Yaru-dark"; prefer_dark=true; else gtk_theme="Yaru"; prefer_dark=false; fi
+  gsettings set org.gnome.desktop.interface color-scheme "prefer-$mode"
+  gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme"
+  for ini in "$cfg_dir/gtk-3.0/settings.ini" "$cfg_dir/gtk-4.0/settings.ini"; do
+    [ -f "$ini" ] && sed -i "s/^gtk-application-prefer-dark-theme=.*/gtk-application-prefer-dark-theme=$prefer_dark/" "$ini"
+  done
+  [ -f "$cfg_dir/gtk-3.0/settings.ini" ] && sed -i "s/^gtk-theme-name=.*/gtk-theme-name=$gtk_theme/" "$cfg_dir/gtk-3.0/settings.ini"
+  for hook in "$cfg_dir"/theme-mode/hooks.d/*; do
+    [ -x "$hook" ] && "$hook" "$mode"
+  done
+  return 0
+}
+
+case "${1:-status}" in
+  apply)
+    case "${2:-}" in dark|light) apply "$2" ;; *) echo "usage: theme-mode apply <dark|light>" >&2; exit 2 ;; esac ;;
+  dark|light)
+    if darkman_up; then exec "$darkman_bin" set "$1"; else apply "$1"; fi ;;
+  toggle)
+    if darkman_up; then exec "$darkman_bin" toggle; fi
+    [ "$(current)" = dark ] && apply light || apply dark ;;
+  status)
+    if darkman_up; then exec "$darkman_bin" get; else current; fi ;;
+  *) echo "usage: theme-mode [dark|light|toggle|status|apply <mode>]" >&2; exit 2 ;;
+esac

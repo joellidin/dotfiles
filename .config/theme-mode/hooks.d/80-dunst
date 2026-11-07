@@ -1,0 +1,12 @@
+#!/usr/bin/sh
+# Point dunst's drop-in at the colour file for $1 (dark|light) and restart dunst.
+# (dunst 1.9.2 does not rescan dunstrc.d on `dunstctl reload`, so a restart is needed.)
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}/dunst"
+[ -r "$cfg/themes/$1.conf" ] || exit 0
+mkdir -p "$cfg/dunstrc.d"
+ln -sfn "../themes/$1.conf" "$cfg/dunstrc.d/50-theme.conf"
+if command -v dunst >/dev/null 2>&1; then
+  pkill -x dunst; sleep 0.3
+  setsid -f dunst >/dev/null 2>&1
+fi
+exit 0

@@ -1,0 +1,124 @@
+# ~/.config/herdr/config.toml
+# Modeled on ~/.config/tmux/tmux.conf. Each block names the tmux line it replaces.
+# Apply with:  herdr server reload-config   (ui.sidebar_start_collapsed needs a relaunch)
+
+onboarding = false
+
+[theme]
+# tmux: set -g @plugin 'catppuccin/tmux'
+name = "catppuccin"
+# Follow Ghostty's light/dark report (driven by darkman -> theme-mode -> portal)
+auto_switch = true
+dark_name = "catppuccin"
+# "terminal" takes the colours from Ghostty's light theme, so the two stay in step
+light_name = "terminal"
+
+# Light mode: the terminal theme paints the active Space/Agent rows dark grey; use a warm
+# light highlight and the Modus blue accent instead (matches the i3 bar palette).
+[theme.custom.light]
+active_row_bg = "#e9e2d6"
+selection_bg = "#dcd3c5"
+accent = "#ccdfff"
+
+[terminal]
+# tmux: every new-window used -c "#{pane_current_path}". "follow" is the default; stated for clarity.
+new_cwd = "follow"
+
+[ui]
+# tmux `prefix+c` creates the window immediately with no name prompt
+prompt_new_tab_name = false
+# tmux-style splitters: thin internal dividers, no outer frame, no gaps, no scrollbar column
+pane_outer_borders = false
+pane_gaps = false
+pane_scrollbars = false
+# tmux has no sidebar. Uncomment for a full-width view; prefix+b toggles it. Needs a relaunch.
+# sidebar_start_collapsed = true
+
+[ui.toast]
+delivery = "herdr"
+
+[session]
+# tmux-resurrect @resurrect-strategy-nvim 'session' analogue: agents resume their own sessions
+# after a server restart. Needs `herdr integration install claude` (and codex etc.).
+resume_agents_on_restore = true
+
+[experimental]
+# tmux-resurrect @resurrect-capture-pane-contents 'on'. Writes screen contents to
+# ~/.config/herdr/session-history.json, so treat that file like shell history.
+pane_history = true
+
+[keys]
+# tmux: unbind C-b / set-option -g prefix C-a
+prefix = "ctrl+a"
+
+# tmux: prefix+d detaches. herdr default was prefix+q.
+detach = "prefix+d"
+
+# tmux: bind r source-file. Swapped with resize mode (herdr default prefix+r).
+reload_config = "prefix+r"
+resize_mode = "prefix+shift+r"
+
+# tmux: bind -r h/j/k/l select-pane. herdr defaults already match (prefix+h/j/k/l).
+# tmux.conf rebound `l` to the ruff popup; here ruff lives on prefix+u so pane-right works.
+
+# tmux: bind -r ^ last-window. herdr has no last-tab, but last_pane returns to the last
+# focused pane across tabs and workspaces, which covers the same habit. prefix+; is the
+# tmux default for last-pane.
+last_pane = ["prefix+^", "prefix+semicolon"]
+
+# tmux default split keys % and " alongside herdr's v and minus
+split_vertical = ["prefix+v", "prefix+percent"]
+split_horizontal = ["prefix+minus", "prefix+\""]
+
+# tmux default { and } alongside herdr's shift+h / shift+l
+swap_pane_left = ["prefix+shift+h", "prefix+{"]
+swap_pane_right = ["prefix+shift+l", "prefix+}"]
+
+# Tabs are tmux windows. prefix+c, prefix+n/p and prefix+1..9 already match.
+rename_tab = ["prefix+shift+t", "prefix+comma"]      # tmux ,
+close_tab = ["prefix+shift+x", "prefix+ampersand"]   # tmux &
+
+# Workspaces are tmux sessions. prefix+w opens the workspace picker (tmux w / s).
+# close_workspace moved off prefix+shift+d so D can open ipython like in tmux.
+close_workspace = "prefix+shift+q"
+
+# Copy mode is already tmux-like: prefix+[ enters, h/j/k/l move, v selects, y copies, / searches.
+copy_mode = "prefix+["
+
+# tmux: bind D new-window -n ipython ... (venv activation then exec ipython)
+[[keys.command]]
+key = "prefix+shift+d"
+type = "shell"
+description = "ipython tab"
+command = '''
+cwd="${HERDR_ACTIVE_PANE_CWD:-$PWD}"
+pane=$("$HERDR_BIN_PATH" tab create --cwd "$cwd" --label ipython --focus | jq -r .result.root_pane.pane_id)
+"$HERDR_BIN_PATH" pane run "$pane" '[ -d .venv ] && . .venv/bin/activate; exec ipython'
+'''
+
+# tmux: bind -r t display-popup -h 90% -w 90% -T pytest
+[[keys.command]]
+key = "prefix+t"
+type = "popup"
+description = "pytest"
+width = "90%"
+height = "90%"
+command = '''cd "${HERDR_ACTIVE_PANE_CWD:-$PWD}" && bash -c 'if [ -d .venv ]; then source .venv/bin/activate && FORCE_COLOR=1 pytest | bat --color=always; fi; read -p "Press enter to close..."' '''
+
+# tmux: bind -r l display-popup -h 90% -w 90% -T ruff  (moved to u, see note under [keys])
+[[keys.command]]
+key = "prefix+u"
+type = "popup"
+description = "ruff"
+width = "90%"
+height = "90%"
+command = '''cd "${HERDR_ACTIVE_PANE_CWD:-$PWD}" && bash -c 'if [ -d .venv ]; then source .venv/bin/activate && FORCE_COLOR=1 ruff check --preview | bat --color=always; fi; read -p "Press enter to close..."' '''
+
+# tmux: bind-key -r f display-popup -h 75% -w 75% -T sessionizer -E "~/.local/bin/tmux-sessionizer"
+[[keys.command]]
+key = "prefix+f"
+type = "popup"
+description = "sessionizer"
+width = "75%"
+height = "75%"
+command = '"$HOME/.local/bin/herdr-sessionizer"'

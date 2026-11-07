@@ -1,0 +1,9 @@
+#!/usr/bin/sh
+# Switch i3 bar and border colours: merge the palette for $1 (dark|light) into X resources,
+# then restart i3 in place (i3bar and i3blocks restart with it; the volume block reads i3wm.base04 itself)
+export DISPLAY="${DISPLAY:-:0}"
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}"
+xres="$cfg/x11/i3-$1.xres"
+[ -r "$xres" ] || exit 0
+xrdb -merge "$xres" && i3-msg -q restart   # restart (not reload) so i3bar and i3blocks pick up the new colours
+exit 0

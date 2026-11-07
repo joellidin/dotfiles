@@ -1,0 +1,2 @@
+#!/usr/bin/sh
+exec "$HOME/.local/bin/theme-mode" apply dark

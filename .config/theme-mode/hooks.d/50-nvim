@@ -1,0 +1,6 @@
+#!/usr/bin/sh
+# Flip background in every running Neovim. rose-pine (variant auto) picks dawn for light, moon/main for dark.
+for srv in $(nvr --serverlist 2>/dev/null); do
+  nvr --servername "$srv" --nostart -c "set background=$1" 2>/dev/null
+done
+exit 0

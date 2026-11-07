@@ -1,0 +1,14 @@
+[Unit]
+Description=darkman: dark-mode and light-mode transitions
+Documentation=man:darkman(1)
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/darkman run
+# darkman runs hooks only on transitions; sync the desktop to its mode once per start
+ExecStartPost=/bin/sh -c 'for i in 1 2 3 4 5 6 7 8 9 10; do [ -S "$XDG_RUNTIME_DIR/darkman/control.sock" ] && break; sleep 0.5; done; exec %h/.local/bin/theme-mode apply "$(%h/.local/bin/darkman get)"'
+Restart=on-failure
+TimeoutStopSec=15
+
+[Install]
+WantedBy=default.target
