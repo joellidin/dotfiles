@@ -1,0 +1,26 @@
+! i3 bar and border colours, light mode (derived from the Ghostty Modus Operandi Tinted). Loaded by ~/.config/theme-mode/hooks.d/70-i3
+i3wm.base00: #fbf7f0
+i3wm.base01: #efe9dd
+i3wm.base02: #e0d8cc
+i3wm.base03: #c4bcb0
+i3wm.base04: #595959
+i3wm.base05: #000000
+i3wm.base06: #1e1e1e
+i3wm.base07: #000000
+i3wm.base08: #a60000
+i3wm.base09: #884900
+i3wm.base0A: #6f5500
+i3wm.base0B: #006800
+i3wm.base0C: #005e8b
+i3wm.base0D: #0031a9
+i3wm.base0E: #721045
+i3wm.base0F: #884900
+! dmenu colours (read by a dmenu wrapper, see theme-mode notes)
+dmenu.background: #fbf7f0
+dmenu.foreground: #595959
+dmenu.selbackground: #0031a9
+dmenu.selforeground: #fbf7f0
+! focused workspace pill: pale blue tint with blue text
+i3wm.wsfocus_border: #ccdfff
+i3wm.wsfocus_bg: #ccdfff
+i3wm.wsfocus_fg: #0031a9

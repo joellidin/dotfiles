@@ -15,6 +15,8 @@ AUDIO_MUTED_SYMBOL=${AUDIO_MUTED_SYMBOL:-' '}
 
 AUDIO_DELTA=${AUDIO_DELTA:-5}
 
+# Default to the bar statusline colour from X resources (i3wm.base04, swapped by theme-mode), then white.
+DEFAULT_COLOR=${DEFAULT_COLOR:-$(xrdb -query 2>/dev/null | awk '/^i3wm\.base04:/{print $2; exit}')}
 DEFAULT_COLOR=${DEFAULT_COLOR:-"#ffffff"}
 MUTED_COLOR=${MUTED_COLOR:-"#a0a0a0"}
 

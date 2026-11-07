@@ -1,0 +1,26 @@
+! i3 bar and border colours, dark mode (gruvbox dark soft). Loaded by ~/.config/theme-mode/hooks.d/70-i3
+i3wm.base00: #32302f
+i3wm.base01: #3c3836
+i3wm.base02: #504945
+i3wm.base03: #665c54
+i3wm.base04: #bdae93
+i3wm.base05: #d5c4a1
+i3wm.base06: #ebdbb2
+i3wm.base07: #fbf1c7
+i3wm.base08: #fb4934
+i3wm.base09: #fe8019
+i3wm.base0A: #fabd2f
+i3wm.base0B: #b8bb26
+i3wm.base0C: #8ec07c
+i3wm.base0D: #83a598
+i3wm.base0E: #d3869b
+i3wm.base0F: #d65d0e
+! dmenu colours (read by a dmenu wrapper, see theme-mode notes)
+dmenu.background: #32302f
+dmenu.foreground: #bdae93
+dmenu.selbackground: #83a598
+dmenu.selforeground: #32302f
+! focused workspace pill
+i3wm.wsfocus_border: #d5c4a1
+i3wm.wsfocus_bg: #83a598
+i3wm.wsfocus_fg: #32302f

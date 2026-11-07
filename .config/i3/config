@@ -8,22 +8,27 @@
 # export TERMINAL="st"
 
 # Colors
-set $base00 #32302f
-set $base01 #3c3836
-set $base02 #504945
-set $base03 #665c54
-set $base04 #bdae93
-set $base05 #d5c4a1
-set $base06 #ebdbb2
-set $base07 #fbf1c7
-set $base08 #fb4934
-set $base09 #fe8019
-set $base0A #fabd2f
-set $base0B #b8bb26
-set $base0C #8ec07c
-set $base0D #83a598
-set $base0E #d3869b
-set $base0F #d65d0e
+# Colours come from X resources so theme-mode can switch them (see ~/.config/x11/i3-*.xres); the fallbacks are the dark set.
+set_from_resource $base00 i3wm.base00 #32302f
+set_from_resource $base01 i3wm.base01 #3c3836
+set_from_resource $base02 i3wm.base02 #504945
+set_from_resource $base03 i3wm.base03 #665c54
+set_from_resource $base04 i3wm.base04 #bdae93
+set_from_resource $base05 i3wm.base05 #d5c4a1
+set_from_resource $base06 i3wm.base06 #ebdbb2
+set_from_resource $base07 i3wm.base07 #fbf1c7
+set_from_resource $base08 i3wm.base08 #fb4934
+set_from_resource $base09 i3wm.base09 #fe8019
+set_from_resource $base0A i3wm.base0A #fabd2f
+set_from_resource $base0B i3wm.base0B #b8bb26
+set_from_resource $base0C i3wm.base0C #8ec07c
+set_from_resource $base0D i3wm.base0D #83a598
+set_from_resource $base0E i3wm.base0E #d3869b
+set_from_resource $base0F i3wm.base0F #d65d0e
+# Focused workspace pill in the bar (light mode uses a pale tint, see i3-light.xres)
+set_from_resource $wsfocus_border i3wm.wsfocus_border #d5c4a1
+set_from_resource $wsfocus_bg i3wm.wsfocus_bg #83a598
+set_from_resource $wsfocus_fg i3wm.wsfocus_fg #32302f
 
 # #---Basic Definitions---# #
 for_window [class="^.*"] border pixel 2
@@ -57,7 +62,7 @@ bar {
         statusline $base04
 
         # State             Border  BG      Text
-        focused_workspace   $base05 $base0D $base00
+        focused_workspace   $wsfocus_border $wsfocus_bg $wsfocus_fg
         active_workspace    $base05 $base03 $base00
         inactive_workspace  $base03 $base01 $base05
         urgent_workspace    $base08 $base08 $base00
@@ -96,6 +101,7 @@ bindsym $mod+Shift+Return	exec --no-startup-id $HOME/.local/bin/samedir
 bindsym $mod+Return             exec i3-sensible-terminal
 
 bindsym $mod+Shift+b            exec --no-startup-id $BROWSER
+bindsym $mod+Shift+d            exec --no-startup-id $HOME/.local/bin/theme-mode toggle
 
 bindsym $mod+y                  exec setsid -f mpv "$(xclip -o)"
 
