@@ -1,0 +1,27 @@
+#!/usr/bin/sh
+# Make Claude Code (theme = "auto") follow the dark/light switch inside herdr.
+#
+# Claude listens for the terminal's colour-scheme report (DEC mode 2031, ESC[?997;1n dark /
+# ESC[?997;2n light) and, on receiving one, re-reads the background colour with an OSC 11 query.
+# herdr forwards the report to its panes before it has refreshed its own cached host palette, so
+# the query answers with the OLD colour and Claude ends up one toggle behind (measured 2026-11-08).
+# Re-sending the report a few seconds later, once herdr has caught up, makes Claude re-detect
+# correctly. Claude only uses the report as a trigger; the OSC 11 answer decides the theme.
+herdr_bin=$(command -v herdr 2>/dev/null || echo "$HOME/.local/bin/herdr")
+[ -x "$herdr_bin" ] || exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+case "$1" in dark) code=1 ;; light) code=2 ;; *) exit 0 ;; esac
+report=$(printf '\033[?997;%sn' "$code")
+
+# Detach: theme-mode runs hooks sequentially and must not wait for us.
+(
+  for delay in 5 7; do
+    sleep "$delay"
+    "$herdr_bin" agent list 2>/dev/null \
+      | jq -r '.result.agents[]? | select(.agent == "claude") | .pane_id' \
+      | while IFS= read -r pane; do
+          "$herdr_bin" pane send-text "$pane" "$report" >/dev/null 2>&1
+        done
+  done
+) >/dev/null 2>&1 &
+exit 0
