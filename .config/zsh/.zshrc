@@ -84,6 +84,7 @@ plugins=(
   kubectl
   uv
   rust
+  herdr
 )
 
 # zcompdump clean up for oh-my-zsh
@@ -150,6 +151,7 @@ fi
 # autoload -U promptinit; promptinit
 # prompt pure
 eval "$(starship init zsh)"
+command -v mise >/dev/null 2>&1 && eval "$(mise activate zsh)"
 
 alias luamake=/home/jlidin/.cache/nvim/nlua/lua-language-server/3rd/luamake/luamake
 
