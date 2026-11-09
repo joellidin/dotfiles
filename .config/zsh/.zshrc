@@ -176,6 +176,8 @@ unsetopt PROMPT_SP
 
 # Set vi mode
 setopt vi
+# Esc enters normal mode after 10 ms instead of 0.4 s (no two-key insert-mode bindings rely on the wait)
+KEYTIMEOUT=1
 
 # herdr starts a fresh shell in the project dir for every new pane, tab and workspace.
 # This replaces the tmux send-keys "source .venv/bin/activate" hack in the c, D and
