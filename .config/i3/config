@@ -335,7 +335,6 @@ bindsym XF86MonBrightnessDown exec brightnessctl set  5%-
 focus_on_window_activation focus
 
 
-exec                            slack
 exec                            $BROWSER
 # exec_always --no-startup-id exec i3-workspace-names-daemon   # not installed; logged "not found" on every start
 exec_always --no-startup-id $HOME/.local/bin/polybar-launch
