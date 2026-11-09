@@ -1,0 +1,31 @@
+#!/bin/sh
+# wallpaper-pool <dark|light> <id>...
+# Make the wallpaper pool of a mode exactly these candidates: ~/.local/share/wallpapers/<mode>/ becomes symlinks to
+# ~/.local/share/wallpapers/candidates/<mode>/<id>.* (ids as in candidates/manifest.json and the Wallpaper Picker page).
+# The theme hook ~/.config/theme-mode/hooks.d/40-wallpaper picks one of them at random on every dark/light switch.
+# With no ids the pool is left as it is, so a mode with nothing liked keeps its current wallpaper.
+set -eu
+W="${XDG_DATA_HOME:-$HOME/.local/share}/wallpapers"
+mode=${1:-}; case "$mode" in dark|light) shift ;; *) echo "usage: wallpaper-pool <dark|light> <id>..." >&2; exit 2 ;; esac
+[ $# -gt 0 ] || { echo "no ids given: $mode pool unchanged"; exit 0; }
+pool="$W/$mode"; mkdir -p "$pool"
+targets=""
+for id in "$@"; do
+  c=$(find "$W/candidates/$mode" -maxdepth 1 -type f -name "$id.*" | head -n 1)
+  [ -n "$c" ] || { echo "unknown $mode wallpaper: $id" >&2; exit 1; }
+  targets="$targets $c"
+done
+# clear the pool: symlinks always; plain files only when the same image is kept in candidates
+for f in "$pool"/*; do
+  [ -e "$f" ] || [ -L "$f" ] || continue
+  if [ -L "$f" ]; then rm -f "$f"
+  elif c=$(find "$W/candidates/$mode" -maxdepth 1 -type f -name "$(basename "${f%.*}").*" | head -n 1) && [ -n "$c" ] && cmp -s "$f" "$c"; then rm -f "$f"
+  else echo "kept (not a candidate): $f" >&2; fi
+done
+for c in $targets; do ln -sfn "$c" "$pool/$(basename "$c")"; done
+# if this mode's remembered image is no longer liked, point it at a liked one (shown from the next switch or login)
+slot="${XDG_DATA_HOME:-$HOME/.local/share}/bg-$mode"
+if [ ! -e "$slot" ] || [ -z "$(find -L "$pool" -maxdepth 1 -samefile "$(readlink -f "$slot")" 2>/dev/null)" ]; then
+  ln -sfn "$(find "$pool" -maxdepth 1 | sed 1d | shuf -n 1)" "$slot"
+fi
+echo "$mode pool: $(ls "$pool" | tr '\n' ' ')"

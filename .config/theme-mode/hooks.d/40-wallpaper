@@ -1,0 +1,18 @@
+#!/usr/bin/sh
+# Wallpaper per mode, chosen at random from the liked pool on every dark/light switch.
+# Pool: ~/.local/share/wallpapers/<mode>/ (symlinks to the liked images in wallpapers/candidates/, set by
+# `wallpaper-pool <mode> <id>...` from the Wallpaper Picker page). Never the same image twice in a row when the
+# pool has two or more; a pool of one keeps that one, an empty pool keeps the current image.
+# ~/.local/share/bg-<mode> remembers the image, bg points at the active mode, setbg at X start draws bg, and
+# `setbg <image>` overrides the current mode until the next switch.
+export DISPLAY="${DISPLAY:-:0}"
+d="${XDG_DATA_HOME:-$HOME/.local/share}"
+pool="$d/wallpapers/$1"
+current=$(readlink -f "$d/bg-$1" 2>/dev/null)
+pick=$(find -L "$pool" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) 2>/dev/null |
+  while read -r f; do [ "$(readlink -f "$f")" = "$current" ] || printf '%s\n' "$f"; done | shuf -n 1)
+[ -n "$pick" ] && ln -sfn "$pick" "$d/bg-$1"
+[ -e "$d/bg-$1" ] || exit 0
+ln -sfn "bg-$1" "$d/bg"
+xwallpaper --zoom "$d/bg"
+exit 0
