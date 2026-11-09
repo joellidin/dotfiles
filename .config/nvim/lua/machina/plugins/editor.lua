@@ -47,7 +47,7 @@ return {
       vim.keymap.set("v", "<leader>rv", function() require("refactoring").refactor("Extract Variable") end, { desc = "Extract variable" })
       vim.keymap.set("v", "<leader>ri", function() require("refactoring").refactor("Inline Variable") end, { desc = "Inline variable" })
       vim.keymap.set("n", "<leader>rb", function() require("refactoring").refactor("Extract Block") end, { desc = "Extract block" })
-      vim.keymap.set("n", "<leader>rbf", function() require("refactoring").refactor("Extract Block To File") end, { desc = "Extract block to file" })
+      vim.keymap.set("n", "<leader>rB", function() require("refactoring").refactor("Extract Block To File") end, { desc = "Extract block to file" })
       vim.keymap.set("n", "<leader>ri", function() require("refactoring").refactor("Inline Variable") end, { desc = "Inline variable" })
       vim.keymap.set("v", "<leader>rr", function() require("refactoring").select_refactor() end, { desc = "Refactor menu" })
     end,
