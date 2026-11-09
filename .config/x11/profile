@@ -4,7 +4,9 @@
 # If you use startx/xinit like a Chad, this file will also be sourced.
 
 setbg &			# set the background with the `setbg` script
-xrdb -merge ${XDG_CONFIG_HOME:-$HOME/.config}/x11/xresources &	# Uncomment to use Xresources colors/settings on startup
+xrdb -merge ${XDG_CONFIG_HOME:-$HOME/.config}/x11/xresources	# Xresources colors/settings
+# i3 colours for the current theme mode, so i3 starts in the right mode (darkman's own sync runs before X is up)
+xrdb -merge ${XDG_CONFIG_HOME:-$HOME/.config}/x11/i3-$($HOME/.local/bin/theme-mode status 2>/dev/null || echo dark).xres &
 # mpd &			# music player daemon-you might prefer it as a service though
 remaps &		# run the remaps script, switching caps/esc and more; check it for more info
 picom -b &		# picom compositor (blur, shadows, animations)

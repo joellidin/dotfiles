@@ -23,6 +23,14 @@ current() {
 
 apply() {
   mode=$1
+  # Hooks run from the darkman service start without the X session's environment
+  # (the service comes up before the display is exported), so borrow DISPLAY and
+  # XAUTHORITY from the systemd user environment; xrdb, i3-msg and dunst need them.
+  if [ -z "${DISPLAY:-}" ]; then
+    for kv in $(systemctl --user show-environment 2>/dev/null | grep -E '^(DISPLAY|XAUTHORITY)='); do
+      export "$kv"
+    done
+  fi
   if [ "$mode" = dark ]; then gtk_theme="Yaru-dark"; prefer_dark=true; else gtk_theme="Yaru"; prefer_dark=false; fi
   gsettings set org.gnome.desktop.interface color-scheme "prefer-$mode"
   gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme"
