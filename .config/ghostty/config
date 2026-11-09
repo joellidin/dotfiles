@@ -49,6 +49,7 @@ keybind = super+ctrl+shift+arrow_left=unbind
 keybind = super+ctrl+shift+arrow_right=unbind
 keybind = super+ctrl+shift+arrow_up=unbind
 
+font-family = JetBrainsMonoNL Nerd Font Mono
 font-feature = -calt
 
 theme = dark:Chalkboard,light:Modus Operandi Tinted
