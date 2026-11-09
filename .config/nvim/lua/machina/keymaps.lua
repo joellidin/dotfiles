@@ -51,8 +51,7 @@ map("n", "<leader><leader>x", function()
   end
 end, { desc = "Save and execute current file" })
 
--- Make esc leave terminal mode
-map("t", "<leader><Esc>", [[<C-\><C-n>]])
+-- Make esc leave terminal mode (no leader-prefixed terminal maps: Space would wait timeoutlen)
 map("t", "<Esc><Esc>", [[<C-\><C-n>]])
 
 -- Replace currently selected text with default register without yanking it

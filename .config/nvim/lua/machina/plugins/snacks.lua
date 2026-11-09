@@ -309,13 +309,29 @@ return {
         desc = "All pickers",
       },
 
-      -- Terminal
+      -- Terminal. Only non-leader keys in terminal mode, or every Space typed there waits timeoutlen.
       {
         "<leader>st",
         function()
           Snacks.terminal.toggle()
         end,
         desc = "Toggle terminal",
+      },
+      {
+        "<c-/>",
+        function()
+          Snacks.terminal.toggle()
+        end,
+        desc = "Toggle terminal",
+        mode = { "n", "t" },
+      },
+      -- Most terminals send ctrl+/ as ctrl+_
+      {
+        "<c-_>",
+        function()
+          Snacks.terminal.toggle()
+        end,
+        desc = "which_key_ignore",
         mode = { "n", "t" },
       },
     },
