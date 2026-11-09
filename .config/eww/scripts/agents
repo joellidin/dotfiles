@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+"""herdr agents as JSON for the eww popup. Status semantics from `herdr --skill`: blocked = waiting at an approval or
+question, done = finished a turn you have not looked at yet, working, idle = seen and ready. Sorted in that order."""
+import json, subprocess
+def run(*a):
+    try: return json.loads(subprocess.run(a, capture_output=True, text=True).stdout)["result"]
+    except Exception: return {}
+agents = run("herdr", "agent", "list").get("agents", [])
+ws = {w["workspace_id"]: w for w in run("herdr", "workspace", "list").get("workspaces", [])}
+order = {"blocked": 0, "done": 1, "working": 2, "idle": 3, "unknown": 4}
+rows = []
+for a in agents:
+    w = ws.get(a.get("workspace_id"), {})
+    rows.append({"pane": a.get("pane_id", ""), "status": a.get("agent_status", "unknown"), "agent": a.get("agent", ""),
+                 "title": a.get("name") or a.get("terminal_title_stripped") or a.get("terminal_title") or a.get("cwd", ""),
+                 "ws": f"{w.get('number', '?')} {w.get('label', '')}".strip(),
+                 "cwd": a.get("cwd", "").replace("/home/joel-lidin", "~")})
+rows.sort(key=lambda r: (order.get(r["status"], 9), r["pane"]))
+print(json.dumps(rows))

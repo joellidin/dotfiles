@@ -1,0 +1,9 @@
+#!/bin/sh
+# Microphone mute indicator for polybar (module/mic, custom/ipc).
+# Re-run with: polybar-msg action mic hook 0   (bound to XF86AudioMicMute in the i3 config)
+red=$(xrdb -query 2>/dev/null | awk '/^i3wm\.base08:/{print $2; exit}')
+if wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null | grep -q MUTED; then
+  printf '%%{F%s}\357\204\261%%{F-}\n' "${red:-#fb4934}"   # U+F131 microphone-slash, in red
+else
+  printf '\357\204\260\n'                                  # U+F130 microphone
+fi

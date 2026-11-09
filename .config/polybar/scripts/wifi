@@ -1,0 +1,23 @@
+#!/bin/sh
+# Wi-Fi status for polybar (module/wifi, custom/script with tail = true): prints once at start and again whenever
+# NetworkManager reports a change (nmcli monitor), never polls. SSID from the kernel via iw (instant and correct on this
+# USB adapter); while NetworkManager is connecting the pill says so. Only prints when the text changes.
+xr() { xrdb -query 2>/dev/null | awk -v k="$1:" '$1==k{print $2; exit}'; }
+blue=$(xr i3wm.base0D); blue=${blue:-#83a598}
+dim=$(xr i3wm.base03);  dim=${dim:-#665c54}
+yellow=$(xr i3wm.base0A); yellow=${yellow:-#fabd2f}
+WIFI=$(printf '\357\207\253')
+last=""
+status() {
+  iface=$(iw dev 2>/dev/null | awk '/Interface/{print $2; exit}')
+  state=$(nmcli -t -f DEVICE,STATE device 2>/dev/null | awk -F: -v d="$iface" '$1==d{print $2; exit}')
+  ssid=$(iw dev "$iface" link 2>/dev/null | awk -F'SSID: ' '/SSID:/{print $2; exit}')
+  case "$state" in
+    connecting*) line=$(printf '%%{F%s}%s connecting%%{F-}' "$yellow" "$WIFI") ;;
+    *) if [ -n "$ssid" ]; then line=$(printf '%%{F%s}%s%%{F-} %s' "$blue" "$WIFI" "$ssid")
+       else line=$(printf '%%{F%s}%s off%%{F-}' "$dim" "$WIFI"); fi ;;
+  esac
+  [ "$line" != "$last" ] && { printf '%s\n' "$line"; last=$line; }
+}
+status
+nmcli monitor 2>/dev/null | while read -r _; do status; done

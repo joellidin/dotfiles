@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+"""herdr agent counts for the eww agents pill: {"blocked": n, "done": n, "working": n} (herdr's own states)."""
+import json, subprocess
+try: a = json.loads(subprocess.run(["herdr", "agent", "list"], capture_output=True, text=True, timeout=3).stdout)["result"]["agents"]
+except Exception: a = []
+print(json.dumps({s: sum(1 for x in a if x.get("agent_status") == s) for s in ("blocked", "done", "working")}))

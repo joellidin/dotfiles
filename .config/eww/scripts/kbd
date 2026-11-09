@@ -1,0 +1,18 @@
+#!/bin/sh
+# Keyboard layout flag for the always-on eww `kbd` pill (eww renders emoji flags; polybar cannot).
+#   (no args)  print the flag for the current layout
+#   cycle      switch layout, update the pill, re-apply key remaps (bound to $mod+Ctrl+space and the pill click)
+#   refresh    push the current flag into eww
+eww=$HOME/.local/bin/eww
+flag() {
+  case "$("$HOME/.local/bin/i3-keyboard-layout" get 2>/dev/null)" in
+    *us*) printf '\360\237\207\272\360\237\207\270' ;;   # US
+    *se*) printf '\360\237\207\270\360\237\207\252' ;;   # SE
+    *)    printf '\342\214\250' ;;                        # keyboard symbol
+  esac
+}
+case "$1" in
+  cycle)   "$HOME/.local/bin/i3-keyboard-layout" cycle us,se se; "$eww" update "kbd=$(flag)" 2>/dev/null; "$HOME/.local/bin/remaps" >/dev/null 2>&1 ;;
+  refresh) "$eww" update "kbd=$(flag)" ;;
+  *)       flag; echo ;;
+esac

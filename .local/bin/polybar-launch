@@ -1,0 +1,22 @@
+#!/bin/sh
+# polybar-launch: (re)start polybar and make sure the eww left bar is open.
+# Run by i3 (exec_always in ~/.config/i3/config) and by ~/.config/theme-mode/hooks.d/70-i3 after
+# xrdb -merge, so the bar re-reads the ${xrdb:...} colours in ~/.config/polybar/config.ini.
+# eww: daemon up and the always-on left bar (workspaces, agents, keyboard flag) open (idempotent)
+eww="$HOME/.local/bin/eww"
+"$eww" ping >/dev/null 2>&1 || { (cd "$HOME" && "$eww" daemon >/dev/null 2>&1); sleep 0.5; }
+"$eww" open leftbar >/dev/null 2>&1 &
+
+if ! command -v polybar >/dev/null 2>&1; then
+  notify-send -u critical "polybar is not installed" "sudo apt install polybar" 2>/dev/null
+  exit 1
+fi
+# always a clean stop and start: a bar restarted in place many times (polybar-msg cmd restart) hung on 2026-11-08,
+# ignored SIGTERM and dropped clicks; give it 2 s to exit, then SIGKILL
+if pgrep -x polybar >/dev/null 2>&1; then
+  pkill -x polybar
+  i=0; while pgrep -x polybar >/dev/null 2>&1 && [ $i -lt 20 ]; do sleep 0.1; i=$((i + 1)); done
+  pkill -9 -x polybar 2>/dev/null
+fi
+log="${XDG_CACHE_HOME:-$HOME/.cache}/polybar.log"
+polybar -l warning main >>"$log" 2>&1 &

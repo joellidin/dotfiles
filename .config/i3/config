@@ -49,26 +49,28 @@ for_window [instance="dropdown_tmuxdd"] border pixel 3
 for_window [instance="dropdown_dropdowncalc"] border pixel 2
 for_window [instance="dropdown_*"] move position center
 
-bar {
-        font pango:SauceCodePro Mono 10, FontAwesome 10
-        status_command i3blocks
-        i3bar_command i3bar -t
-        position top
-        mode dock
-        modifier None
-        colors {
-        background $base00
-        separator  $base01
-        statusline $base04
-
-        # State             Border  BG      Text
-        focused_workspace   $wsfocus_border $wsfocus_bg $wsfocus_fg
-        active_workspace    $base05 $base03 $base00
-        inactive_workspace  $base03 $base01 $base05
-        urgent_workspace    $base08 $base08 $base00
-        binding_mode        $base00 $base0A $base00
-        }
-}
+# i3bar replaced by polybar on 2026-11-08: ~/.config/polybar/config.ini, started by polybar-launch
+# (exec_always further down). The old bar block is kept commented out for an easy revert.
+# bar {
+#         font pango:SauceCodePro Mono 10, FontAwesome 10
+#         status_command i3blocks
+#         i3bar_command i3bar -t
+#         position top
+#         mode dock
+#         modifier None
+#         colors {
+#         background $base00
+#         separator  $base01
+#         statusline $base04
+#
+#         # State             Border  BG      Text
+#         focused_workspace   $wsfocus_border $wsfocus_bg $wsfocus_fg
+#         active_workspace    $base05 $base03 $base00
+#         inactive_workspace  $base03 $base01 $base05
+#         urgent_workspace    $base08 $base08 $base00
+#         binding_mode        $base00 $base0A $base00
+#         }
+# }
 
 # Basic color configuration using the Base16 variables for windows and borders.
 # Property Name         Border  BG      Text    Indicator Child Border
@@ -106,9 +108,11 @@ bindsym $mod+Shift+d            exec --no-startup-id $HOME/.local/bin/theme-mode
 bindsym $mod+y                  exec setsid -f mpv "$(xclip -o)"
 
 bindsym $mod+Shift+space        floating toggle
-bindsym $mod+space		focus mode_toggle
+# Spotlight-style search (~/.local/bin/spotlight); focus mode_toggle moved to $mod+Alt+space (2026-11-08)
+bindsym $mod+space		exec --no-startup-id $HOME/.local/bin/spotlight
+bindsym $mod+Mod1+space		focus mode_toggle
 
-bindsym $mod+Ctrl+space           exec "$HOME/.local/bin/i3-keyboard-layout cycle us,se se && pkill -RTMIN+7 i3blocks && $HOME/.local/bin/remaps"
+bindsym $mod+Ctrl+space           exec --no-startup-id $HOME/.config/eww/scripts/kbd cycle
 # bindsym $mod+Pause              exec $HOME/.scripts/toggle_microphone.sh
 
 bindsym $mod+Escape		workspace prev
@@ -308,14 +312,14 @@ bindsym $mod+Shift+Down		move down
 bindsym $mod+Shift+Up		move up
 bindsym $mod+Shift+Right 	move right
 
-bindsym XF86AudioRaiseVolume exec wpctl set-volume  @DEFAULT_AUDIO_SINK@  5%+   && pkill -RTMIN+10 i3blocks
-bindsym XF86AudioLowerVolume exec wpctl set-volume  @DEFAULT_AUDIO_SINK@  5%-   && pkill -RTMIN+10 i3blocks
-bindsym XF86AudioMute        exec wpctl set-mute    @DEFAULT_AUDIO_SINK@  toggle && pkill -RTMIN+10 i3blocks
+# changing the volume unmutes, like on a Mac (the bar scroll and the quick-settings slider do the same)
+bindsym XF86AudioRaiseVolume exec --no-startup-id wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 && wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+
+bindsym XF86AudioLowerVolume exec --no-startup-id wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 && wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+bindsym XF86AudioMute        exec wpctl set-mute    @DEFAULT_AUDIO_SINK@  toggle
 
 # ─────────── Audio – microphone ───────────
 # mute / un‑mute default *source* (mic) and refresh i3blocks
-bindsym XF86AudioMicMute exec wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle && \
-                          pkill -RTMIN+10 i3blocks
+bindsym XF86AudioMicMute exec wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle && polybar-msg action mic hook 0
 
 # ─────────── Media keys (playerctl) ───────────
 bindsym XF86AudioPlay        exec playerctl play-pause
@@ -333,7 +337,9 @@ focus_on_window_activation focus
 
 exec                            slack
 exec                            $BROWSER
-exec_always --no-startup-id exec i3-workspace-names-daemon
+# exec_always --no-startup-id exec i3-workspace-names-daemon   # not installed; logged "not found" on every start
+exec_always --no-startup-id $HOME/.local/bin/polybar-launch
+exec --no-startup-id $HOME/.local/bin/eww daemon
 
 # exec_always                     external_monitor two-monitors right
 

@@ -1,117 +1,128 @@
-* {
-	all: unset; //Unsets everything so you can style everything from scratch
-	font-family: "FantasqueSansMono Nerd Font";
-}
+@import "_colors.scss";
 
+* { all: unset; font-family: "JetBrainsMono Nerd Font", monospace; font-size: 21px; color: $fg; }
 
-//Global Styles
-.bar {
-	background-color: rgba(0, 0, 0, 0.35);
-	color: #b0b4bc;
-	padding: 6px 15px;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-	border-radius: 0;
-}
+@keyframes spin { from { -gtk-icon-transform: rotate(0turn); } to { -gtk-icon-transform: rotate(1turn); } }
+.spin { animation: spin 0.9s linear infinite; color: $accent; }
+.still { color: $fg; }
 
-$button-radius: 24px;
-$button-bg: rgba(255, 255, 255, 0.04);
-$icon-button-padding: 0px 27px 0 25px;
+// left bar pills: same height, radius and colours as the polybar pills (44 px, radius 22). At Xft.dpi 176 GTK gives
+// these labels ~51 px of line height, which stretched the pills; the negative margins let the labels shrink to the
+// 44 px pill (GTK3 does not clip label text to its allocation) so contents centre like the polybar pills.
+.leftbar { background-color: transparent; }
+.pill { background-color: $bg; border-radius: 22px; min-height: 44px; padding: 0 22px; }
+.pill label { margin-top: -12px; margin-bottom: -12px; }
+.pill.kbd { padding: 0 18px; }
+.dot { font-size: 23px; padding: 0 9px; color: $base03; }
+.dot.focused { color: $accent; }
+.dot.occupied { color: $fg; }
+.dot.visible { color: $accent; }
+.dot.urgent { color: $red; }
+.mode { font-size: 20px; color: $yellow; padding-left: 10px; }
+.ag { font-size: 23px; }
+.ag.blocked { color: $red; }
+.ag.done { color: $green; }
+.ag.working { color: $yellow; }
+.ag.none { color: $base03; }
+.flag { font-family: "Noto Color Emoji"; font-size: 26px; }
 
-.dnd {
-	margin: 0 0 0 15px;
-	font-size: 17px;
-	padding: $icon-button-padding;
-	background-color: $button-bg;
-	border-radius: $button-radius;
-	transition: all 0.3s;
-}
+.popup.control, .popup.wifi { min-width: 544px; }
+.popup { background-color: $bg; border-radius: 24px; padding: 24px 28px; border: 2px solid $base02; }
+.head { margin-bottom: 4px; }
+.heading { font-size: 24px; font-weight: 600; }
+.section { font-size: 15px; color: $base04; }
+.hint { font-size: 15px; color: $base04; margin-bottom: 4px; }
+.close { color: $base04; padding: 4px 10px; border-radius: 12px; }
+.close:hover { background-color: $base02; color: $red; }
+.small { background-color: $base02; border-radius: 12px; padding: 4px 12px; font-size: 16px; }
+.small:hover { background-color: $base03; }
+.small.on, .small.on * { background-color: $accent; color: $bg; }
+.small.busy, .small.busy label { color: $accent; }
+.empty { color: $base04; padding: 10px; }
 
-.dnd:hover {
-	color: #D35D6E;
-	background-color: rgba(248, 122, 122, 0.04);
-}
+// status chips; text colour is set on the chip and on its label child (the `*` rule above would win otherwise)
+.chip, .chip * { font-size: 14px; color: $base04; }
+.chip { padding: 3px 12px; border-radius: 12px; background-color: $base02; }
+.chip.blocked { background-color: $red; }
+.chip.done { background-color: $green; }
+.chip.working { background-color: $yellow; }
+.chip.blocked, .chip.blocked *, .chip.done, .chip.done *, .chip.working, .chip.working * { color: $bg; font-weight: 600; }
+.chip.zero { background-color: $base02; }
+.chip.zero, .chip.zero * { color: $base03; font-weight: 400; }
+.chip.sel { border: 2px solid $fg; }
+button.chip:hover { opacity: 0.85; }
 
-.disturb {
-	// font-size: 0px;
-	margin: 0 0;
-	transition: all 0.3s;
-	padding: 0px 0px;
-	opacity: 0;
-	background-color: $button-bg;
-	border-radius: $button-radius;
-}
+// calendar
+.time { font-size: 52px; font-weight: 600; }
+.date { font-size: 21px; color: $base04; margin-bottom: 10px; }
+.cal { padding: 6px 0 0 0; font-size: 20px; }
+calendar:selected { color: $accent; font-weight: 600; }
+calendar.header { color: $base04; }
+calendar.highlight { color: $accent; }
+calendar:indeterminate { color: $base03; }
 
-// Styles on classes (see eww.yuck for more information)
+// agents
+.agent { padding: 14px 18px; border-radius: 18px; background-color: transparentize($base02, 0.55); }
+.agent:hover { background-color: $base02; }
+.agent .status-bar { border-radius: 4px; min-width: 7px; background-color: $base03; }
+.agent.blocked .status-bar { background-color: $red; }
+.agent.done .status-bar { background-color: $green; }
+.agent.working .status-bar { background-color: $yellow; }
+.agent .title { font-size: 22px; font-weight: 600; }
+.agent .meta { font-size: 15px; color: $base04; }
+.agent .go { color: $base03; font-size: 22px; }
 
-// .next {
-// 	margin: 0 14px 0 14px;
-// 	font-size: 18px;
-// 	background-color: #644ED6;
-// 	color: white;
-// 	border-radius: 14px;
-// 	padding: 4px 8px;
-// }
+// wi-fi
+.net { padding: 12px 14px; border-radius: 14px; }
+.net:hover { background-color: $base02; }
+.net.active .ssid { color: $accent; font-weight: 600; }
+.net.connecting { background-color: $base02; }
+.net .bars { font-size: 16px; color: $accent; min-width: 56px; }
+.net .lock { color: $base04; font-size: 16px; }
+.state { font-size: 14px; }
+.state.ok { color: $accent; }
+.state.busy { color: $accent; }
+.wmsg { border-radius: 14px; padding: 10px 14px; background-color: $base02; }
+.wmsg label { font-size: 17px; }
+.wmsg.ok { background-color: $green; }
+.wmsg.err { background-color: $red; }
+.wmsg.ok label, .wmsg.err label { color: $bg; font-weight: 600; }
 
-.sidestuff slider {
-	all: unset;
-	color: #ed29ff;
-	margin: 3px 0px;
-}
-
-.metric label {
-	font-size: 20;
-}
-
-.metric scale trough highlight {
-	all: unset;
-	background-color: #644ED6;
-	color: #000000;
-	border-radius: 10px;
-}
-.metric scale trough {
-	all: unset;
-	background-color: #644ED6;
-	border-radius: 50px;
-	min-height: 3px;
-	min-width: 50px;
-	margin-left: 10px;
-	margin-right: 20px;
-}
-.metric scale trough highlight {
-	all: unset;
-	background-color: #644ED6;
-	color: #000000;
-	border-radius: 10px;
-}
-.metric scale trough {
-	all: unset;
-	background-color: #4e4e4e;
-	border-radius: 50px;
-	min-height: 3px;
-	min-width: 100px;
-	margin-left: 15px;
-	margin-right: 20px;
-}
-
-.label-ram {
-	font-size: 14px;
-}
-
-.workspace-highlight {
-	font-weight: bold;
-	color: rgb(100, 78, 214);
-	border: 2px solid rgb(100, 78, 214);;
-	background-color: rgba(255, 255, 255, 1);
-}
-
-.workspaces button {
-	border-color: rgb(100, 78, 214);
-	background-color: $button-bg;
-	border-radius: $button-radius;
-	padding: 0 16;
-}
-.workspaces button:hover {
-	color: #D35D6E;
-	background-color: rgba(248, 122, 122, 0.04);
-}
-
+// quick settings
+.battery { padding: 6px 4px 2px 4px; }
+.battery .bicon { font-family: "Symbols Nerd Font"; font-size: 46px; color: $fg; }
+.battery .bicon.ac { color: $aqua; }
+.battery .bicon.low { color: $red; }
+.battery .bpct { font-size: 34px; font-weight: 600; }
+.battery .bstate { font-size: 16px; color: $base04; }
+.slider .icon { font-size: 22px; color: $accent; min-width: 30px; }
+.mutebtn { border-radius: 10px; padding: 0 4px; }
+.mutebtn:hover { background-color: $base02; }
+.slider.muted .mutebtn, .slider.muted .pct { color: $red; }
+.slider.muted scale highlight { background-color: $base03; }
+.toggle .tlabel { font-size: 14px; }
+.slider .pct { font-size: 16px; color: $base04; min-width: 54px; }
+scale trough { background-color: $base02; border-radius: 10px; min-height: 12px; margin: 0 6px; }
+scale highlight { background-color: $accent; border-radius: 10px; }
+scale slider { background-color: $fg; border-radius: 50%; min-width: 22px; min-height: 22px; margin: -6px; }
+.toggle { background-color: $base02; border-radius: 18px; padding: 14px 8px; }
+.toggle .ticon { font-size: 24px; }
+.toggle .tlabel { font-size: 15px; }
+.toggle:hover { background-color: $base03; }
+.toggle.on { background-color: $accent; }
+.toggle.on * { color: $bg; }
+.profile { background-color: $base02; border-radius: 14px; padding: 10px; }
+.profile, .profile * { font-size: 17px; }
+.profile:hover { background-color: $base03; }
+.profile.on { background-color: $accent; }
+.profile.on, .profile.on * { color: $bg; font-weight: 600; }
+.device { background-color: $base02; border-radius: 12px; padding: 9px 14px; }
+.device, .device * { font-size: 18px; }
+.device:hover { background-color: $base03; }
+.device.on { background-color: $accent; }
+.device.on * { color: $bg; }
+.device .radio { font-size: 12px; }
+.microw { padding: 4px 2px; border-radius: 10px; }
+.microw:hover { background-color: $base02; }
+.micicon { font-size: 16px; color: $base04; }
+.micname { font-size: 15px; color: $fg; }

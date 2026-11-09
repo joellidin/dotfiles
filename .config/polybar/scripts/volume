@@ -1,0 +1,31 @@
+#!/bin/sh
+# Volume for polybar (module/volume, custom/script with tail = true). Prints on start and on every PipeWire sink or
+# default-device change (pactl subscribe); never polls. Click toggles mute. Scrolling changes the volume by 5% and
+# unmutes, like the volume keys and the quick-settings slider. Pushes the state to eww (`vol`) when it changes.
+xr() { xrdb -query 2>/dev/null | awk -v k="$1:" '$1==k{print $2; exit}'; }
+aqua=$(xr i3wm.base0C); aqua=${aqua:-#8ec07c}
+red=$(xr i3wm.base08); red=${red:-#fb4934}
+S=@DEFAULT_AUDIO_SINK@
+OFF=$(printf '\357\200\246'); LOW=$(printf '\357\200\247'); HIGH=$(printf '\357\200\250')
+up="wpctl set-mute $S 0 && wpctl set-volume -l 1.0 $S 0.05+"
+down="wpctl set-mute $S 0 && wpctl set-volume $S 0.05-"
+last=""
+render() {
+  out=$(wpctl get-volume $S 2>/dev/null) || return
+  vol=$(printf '%s' "$out" | awk '{ print int($2 * 100 + 0.5) }')
+  case "$out" in
+    *MUTED*) muted=true;  text="%{F$red}$OFF muted%{F-}" ;;
+    *)       muted=false
+             if [ "$vol" -eq 0 ]; then icon=$OFF; elif [ "$vol" -lt 50 ]; then icon=$LOW; else icon=$HIGH; fi
+             text="%{F$aqua}$icon%{F-} $vol%" ;;
+  esac
+  line="%{A1:wpctl set-mute $S toggle:}%{A4:$up:}%{A5:$down:}$text%{A}%{A}%{A}"
+  if [ "$line" != "$last" ]; then
+    printf '%s\n' "$line"; last=$line
+    "$HOME/.local/bin/eww" update "vol={\"vol\":$vol,\"muted\":$muted}" >/dev/null 2>&1 &
+  fi
+}
+render
+pactl subscribe 2>/dev/null | while read -r ev; do
+  case "$ev" in *" on sink "*|*" on server "*) render ;; esac
+done

@@ -1,0 +1,53 @@
+/* Spotlight-style launcher (rofi 2.0). Colours are injected by ~/.local/bin/spotlight with -theme-str from the
+   X resources that theme-mode switches, so it follows dark/light. Layout: one centred card, big search field, rows
+   with large icons and a dim type label, selection as a solid accent pill. */
+configuration {
+  show-icons: true;
+  icon-theme: "Yaru";
+  sort: true;
+  sorting-method: "fzf";
+  matching: "fuzzy";
+  hover-select: true;
+  me-select-entry: "";
+  me-accept-entry: "MousePrimary";
+  kb-cancel: "Escape,Super+space";
+  scroll-method: 0;
+}
+
+* {
+  bg: #fbf7f0; field: #e0d8cc; fg: #1e1e1e; dim: #595959; accent: #0031a9; on-accent: #fbf7f0; edge: #e0d8cc;
+  font: "JetBrainsMono Nerd Font 13";
+  background-color: transparent;
+  text-color: @fg;
+  margin: 0; padding: 0; spacing: 0;
+}
+
+window {
+  location: north; anchor: north; y-offset: 340px;
+  width: 1320px;
+  background-color: @bg;
+  border: 2px; border-color: @edge; border-radius: 28px;
+}
+mainbox { padding: 20px; spacing: 12px; children: [ inputbar, message, listview ]; }
+
+inputbar {
+  background-color: @field; border-radius: 20px; padding: 18px 24px; spacing: 18px;
+  children: [ icon-search, entry ];
+}
+icon-search { expand: false; filename: "system-search"; size: 1.9em; vertical-align: 0.5; }
+entry {
+  expand: true;
+  font: "JetBrainsMono Nerd Font 18"; vertical-align: 0.5; cursor: text;
+  placeholder: "Search apps, windows, agents, files";
+  placeholder-color: @dim;
+}
+
+message { background-color: @field; border-radius: 14px; padding: 10px 18px; }
+textbox { text-color: @fg; markup: true; }
+
+listview { lines: 9; fixed-height: false; dynamic: true; scrollbar: false; spacing: 4px; cycle: true; }
+element { padding: 11px 16px; border-radius: 16px; spacing: 18px; children: [ element-icon, element-text ]; }
+element normal.normal, element alternate.normal, element normal.active, element alternate.active { background-color: transparent; text-color: @fg; }
+element selected.normal, element selected.active { background-color: @accent; text-color: @on-accent; }
+element-icon { size: 2.1em; vertical-align: 0.5; }
+element-text { vertical-align: 0.5; text-color: inherit; }

@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+"""i3 workspaces and binding mode for the eww left bar (deflisten). Prints one JSON line now and again after each
+i3 workspace, window or mode event (title and mark changes are ignored), only when something changed:
+{"ws": [{"num": 1, "state": "focused|occupied|visible|empty|urgent"}, ...], "mode": "default"}
+Workspaces 1..N are shown, N = the highest workspace that has a window or focus. Reconnects if i3 restarts."""
+import json, subprocess, sys, time
+
+def i3(kind):
+    return json.loads(subprocess.run(["i3-msg", "-t", kind], capture_output=True, text=True).stdout or "[]")
+
+def count(node):
+    n = 1 if node.get("window") and node.get("type") in ("con", "floating_con") else 0
+    return n + sum(count(c) for c in node.get("nodes", []) + node.get("floating_nodes", []))
+
+mode, last = "default", None
+def emit():
+    global last
+    try:
+        info = {w["num"]: w for w in i3("get_workspaces") if isinstance(w.get("num"), int) and w["num"] > 0}
+        wins = {}
+        def walk(n):
+            if n.get("type") == "workspace":
+                if isinstance(n.get("num"), int): wins[n["num"]] = count(n)
+                return
+            for c in n.get("nodes", []): walk(c)
+        walk(i3("get_tree"))
+    except Exception:
+        return
+    used = [n for n, c in wins.items() if c > 0] + [n for n, w in info.items() if w["focused"] or w["urgent"]]
+    out = []
+    for n in range(1, max(used + [1]) + 1):
+        w = info.get(n)
+        if w and w["urgent"]: s = "urgent"
+        elif w and w["focused"]: s = "focused"
+        elif wins.get(n, 0) > 0: s = "occupied"
+        elif w and w["visible"]: s = "visible"
+        else: s = "empty"
+        out.append({"num": n, "state": s})
+    line = json.dumps({"ws": out, "mode": mode})
+    if line != last:
+        print(line, flush=True); last = line
+
+while True:
+    emit()
+    sub = subprocess.Popen(["i3-msg", "-t", "subscribe", "-m", '["workspace","window","mode"]'], stdout=subprocess.PIPE, text=True)
+    for raw in sub.stdout:
+        try: ev = json.loads(raw)
+        except Exception: continue
+        if "pango_markup" in ev:                      # binding mode event, e.g. {"change": "resize", ...}
+            mode = ev.get("change", "default")
+        elif ev.get("change") in ("title", "mark", "fullscreen_mode", "floating"):
+            continue                                   # terminal titles change constantly; nothing to redraw
+        emit()
+    time.sleep(1)

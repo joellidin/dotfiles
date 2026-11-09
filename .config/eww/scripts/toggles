@@ -1,0 +1,8 @@
+#!/bin/sh
+# Current state of the quick-settings toggles as JSON.
+wifi=$(nmcli -t radio wifi 2>/dev/null | grep -q enabled && echo true || echo false)
+bt=$(bluetoothctl show 2>/dev/null | grep -q "Powered: yes" && echo true || echo false)
+dnd=$("$(dirname "$0")/dnd")
+dark=$([ "$("$HOME/.local/bin/theme-mode" status 2>/dev/null)" = dark ] && echo true || echo false)
+profile=$(powerprofilesctl get 2>/dev/null || echo balanced)
+printf '{"wifi":%s,"bt":%s,"dnd":%s,"dark":%s,"profile":"%s"}\n' "$wifi" "$bt" "$dnd" "$dark" "$profile"

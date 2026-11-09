@@ -12,7 +12,7 @@
 updateicon() { \
 	echo "$1" > /tmp/recordingicon
         echo $STATUSBAR
-	pkill -RTMIN+9 "${STATUSBAR:-i3blocks}"
+	polybar-msg action recording hook 0 >/dev/null 2>&1 || pkill -RTMIN+9 "${STATUSBAR:-i3blocks}"
 	}
 
 killrecording() {
@@ -21,7 +21,7 @@ killrecording() {
 	kill -15 "$recpid"
 	rm -f /tmp/recordingpid
 	updateicon ""
-	pkill -RTMIN+9 "${STATUSBAR:-i3blocks}"
+	polybar-msg action recording hook 0 >/dev/null 2>&1 || pkill -RTMIN+9 "${STATUSBAR:-i3blocks}"
 	# even after SIGTERM, ffmpeg may still run, so SIGKILL it.
 	sleep 3
 	kill -9 "$recpid"

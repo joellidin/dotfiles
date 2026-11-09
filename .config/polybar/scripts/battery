@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Battery for polybar (module/battery, custom/script with tail = true) and for eww (--json).
+#   (no args)  print the bar label now, then again on every UPower event (AC plug/unplug is instant), 60 s fallback
+#   --json     print one JSON object for the eww quick-settings header
+# Glyphs are Material Design icons from Symbols Nerd Font (polybar font-3, %{T4}): on AC the battery itself carries
+# the bolt (also at 100%), on battery it shows the charge level, red at 15% and below. Notifies once at 10%.
+B=/sys/class/power_supply/BAT0; A=/sys/class/power_supply/AC
+CHG=($'\U000F089C' $'\U000F0086' $'\U000F0087' $'\U000F0088' $'\U000F089D' $'\U000F0089' $'\U000F089E' $'\U000F008A' $'\U000F008B' $'\U000F0085')
+DIS=($'\U000F007A' $'\U000F007B' $'\U000F007C' $'\U000F007D' $'\U000F007E' $'\U000F007F' $'\U000F0080' $'\U000F0081' $'\U000F0082' $'\U000F0079')
+flag="${XDG_RUNTIME_DIR:-/tmp}/battery-low-notified"
+
+read_state() {
+  cap=$(<"$B/capacity"); st=$(<"$B/status"); ac=$(<"$A/online")
+  now=$(<"$B/energy_now"); full=$(<"$B/energy_full"); pw=$(<"$B/power_now")
+  lvl=$(( (cap + 5) / 10 )); (( lvl < 1 )) && lvl=1; (( lvl > 10 )) && lvl=10
+  if [[ $ac == 1 ]]; then icon=${CHG[lvl-1]}; else icon=${DIS[lvl-1]}; fi
+  time=""
+  if (( pw > 0 )); then
+    case $st in
+      Charging)    secs=$(( (full - now) * 3600 / pw )) ;;
+      Discharging) secs=$(( now * 3600 / pw )) ;;
+      *)           secs=0 ;;
+    esac
+    (( secs > 0 )) && time=$(printf '%d:%02d' $((secs / 3600)) $((secs % 3600 / 60)))
+  fi
+}
+
+json() { printf '{"percent":%s,"status":"%s","ac":%s,"time":"%s","icon":"%s"}\n' "$cap" "$st" "$([[ $ac == 1 ]] && echo true || echo false)" "$time" "$icon"; }
+
+if [[ $1 == --json ]]; then read_state; json; exit 0; fi
+
+xr() { xrdb -query 2>/dev/null | awk -v k="$1:" '$1==k{print $2; exit}'; }
+fg=$(xr i3wm.pillfg); aqua=$(xr i3wm.base0C); red=$(xr i3wm.base08)
+fg=${fg:-#d5c4a1}; aqua=${aqua:-#8ec07c}; red=${red:-#fb4934}
+last=""
+render() {
+  read_state
+  if [[ $ac == 1 ]]; then colour=$aqua; rm -f "$flag"
+  elif (( cap <= 15 )); then colour=$red
+  else colour=$fg; fi
+  if [[ $ac != 1 ]] && (( cap <= 10 )) && [[ ! -e $flag ]]; then
+    notify-send -u critical -i battery-caution "Battery low" "${cap}% left${time:+, about $time}. Plug in the charger." 2>/dev/null
+    : > "$flag"
+  fi
+  line="%{A1:$HOME/.config/eww/scripts/toggle control:}%{T4}%{F$colour}$icon%{F-}%{T-} $cap%%{A}"
+  if [[ $line != "$last" ]]; then
+    printf '%s\n' "$line"; last=$line
+    "$HOME/.local/bin/eww" update "battery=$(json)" >/dev/null 2>&1 &
+  fi
+}
+
+render
+while :; do
+  upower --monitor 2>/dev/null | while :; do
+    if read -r -t 60 _; then :; else (( $? > 128 )) || break; fi   # event or 60 s timeout -> render; EOF -> restart
+    render
+  done
+  sleep 5; render
+done

@@ -1,0 +1,11 @@
+#!/bin/sh
+# push fresh state into eww variables right after an action instead of waiting for the next poll
+# usage: refresh toggles|wifi|audio|agents [delay]   (callers set :timeout so eww does not kill this)
+sleep "${2:-0.4}"; eww=$HOME/.local/bin/eww; d=$(dirname "$0")
+case "$1" in
+  toggles) "$eww" update "toggles=$("$d/toggles")" "vol=$("$d/volume")" "brightness=$("$d/brightness")" ;;
+  volume)  "$eww" update "vol=$("$d/volume")" ;;
+  wifi)    "$d/wifi" refresh ;;
+  audio)   "$eww" update "audio=$("$d/audio")" ;;
+  agents)  "$eww" update "agents=$("$d/agents")" ;;
+esac

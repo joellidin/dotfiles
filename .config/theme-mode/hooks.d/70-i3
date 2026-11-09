@@ -1,9 +1,14 @@
 #!/usr/bin/sh
-# Switch i3 bar and border colours: merge the palette for $1 (dark|light) into X resources,
-# then restart i3 in place (i3bar and i3blocks restart with it; the volume block reads i3wm.base04 itself)
+# Switch i3 border colours and the bar palette for $1 (dark|light): merge the X resources, reload i3
+# so set_from_resource picks up the new border colours (reload, not restart: i3bar is gone), then
+# restart polybar in place so the ${xrdb:...} colour references in its config are re-read.
 export DISPLAY="${DISPLAY:-:0}"
 cfg="${XDG_CONFIG_HOME:-$HOME/.config}"
 xres="$cfg/x11/i3-$1.xres"
 [ -r "$xres" ] || exit 0
-xrdb -merge "$xres" && i3-msg -q restart   # restart (not reload) so i3bar and i3blocks pick up the new colours
+xrdb -merge "$xres" || exit 0
+i3-msg -q reload
+"$HOME/.local/bin/polybar-launch"
+# eww popups: regenerate _colors.scss from the same resources and reload if the daemon is up
+"$HOME/.config/eww/scripts/colors" && "$HOME/.local/bin/eww" ping >/dev/null 2>&1 && "$HOME/.local/bin/eww" reload
 exit 0

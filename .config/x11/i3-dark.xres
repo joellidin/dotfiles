@@ -24,3 +24,6 @@ dmenu.selforeground: #32302f
 i3wm.wsfocus_border: #d5c4a1
 i3wm.wsfocus_bg: #83a598
 i3wm.wsfocus_fg: #32302f
+! polybar pill background and text (read by ~/.config/polybar/config.ini)
+i3wm.pill: #3c3836
+i3wm.pillfg: #d5c4a1

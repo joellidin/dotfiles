@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+"""Audio devices for the eww quick settings as JSON {sinks, sources, sink_name, source_name} with short, plain names.
+set-sink NAME / set-source NAME switch the default device."""
+import json, subprocess, sys, os
+def run(*a): return subprocess.run(a, capture_output=True, text=True).stdout
+if len(sys.argv) > 2 and sys.argv[1] in ("set-sink", "set-source"):
+    subprocess.run(["pactl", "set-default-sink" if sys.argv[1] == "set-sink" else "set-default-source", sys.argv[2]], capture_output=True); sys.exit(0)
+FRIENDLY = {"Digital Microphone": "Built-in microphone", "Stereo Microphone": "Headset jack microphone", "Headset Microphone": "Headset microphone",
+            "Speaker": "Built-in speakers", "Speakers": "Built-in speakers", "Headphones": "Headphones", "HDMI / DisplayPort": "HDMI audio"}
+def devices(kind, default):
+    try: items = json.loads(run("pactl", "--format=json", "list", kind) or "[]")
+    except Exception: items = []
+    items = [d for d in items if not (kind == "sources" and d.get("name", "").endswith(".monitor"))]
+    descs = [d.get("description") or d.get("name", "") for d in items]
+    prefix = os.path.commonprefix(descs) if len(descs) > 1 else ""
+    prefix = prefix[: prefix.rfind(" ") + 1] if " " in prefix else ""
+    out = []
+    for d, desc in zip(items, descs):
+        ports = {p.get("name"): p.get("description") for p in d.get("ports", [])}
+        port = ports.get(d.get("active_port"), "")
+        short = FRIENDLY.get(port) or FRIENDLY.get(desc[len(prefix):]) or desc[len(prefix):] or desc
+        if "bluez" in d.get("name", ""): short = desc
+        out.append({"name": d.get("name", ""), "desc": short, "default": d.get("name") == default})
+    return out
+sinks = devices("sinks", run("pactl", "get-default-sink").strip())
+sources = devices("sources", run("pactl", "get-default-source").strip())
+pick = lambda xs: next((x["desc"] for x in xs if x["default"]), xs[0]["desc"] if xs else "none")
+print(json.dumps({"sinks": sinks, "sources": sources, "sink_name": pick(sinks), "source_name": pick(sources)}))

@@ -1,0 +1,8 @@
+#!/bin/sh
+# Sink volume for eww.  (no args) -> {"vol":75,"muted":false}   set N -> unmute, set N% (max 100)   toggle -> mute on/off
+S=@DEFAULT_AUDIO_SINK@
+case "$1" in
+  set)    wpctl set-mute $S 0; wpctl set-volume -l 1.0 $S "$2%" ;;
+  toggle) wpctl set-mute $S toggle ;;
+  *)      wpctl get-volume $S 2>/dev/null | awk '{ m = ($0 ~ /MUTED/) ? "true" : "false"; printf "{\"vol\":%d,\"muted\":%s}\n", int($2 * 100 + 0.5), m }' ;;
+esac
