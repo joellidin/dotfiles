@@ -340,6 +340,8 @@ exec                            $BROWSER
 exec --no-startup-id            libinput-gestures
 # Lock before suspend/lid close and when the screen blanks after idle (xset s 600); running code keeps going
 exec --no-startup-id            xss-lock --transfer-sleep-lock -- $HOME/.local/bin/i3-lock-custom
+# Password dialogs for GUI apps that need admin rights (polkit); i3 ignores the XDG autostart entry for it
+exec --no-startup-id            /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1
 # exec_always --no-startup-id exec i3-workspace-names-daemon   # not installed; logged "not found" on every start
 exec_always --no-startup-id $HOME/.local/bin/polybar-launch
 exec --no-startup-id $HOME/.local/bin/eww daemon
