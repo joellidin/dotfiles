@@ -17,3 +17,22 @@
 # herdr runtime state (sockets, logs, session snapshots); only config.toml is tracked
 .config/herdr/*
 !.config/herdr/config.toml
+
+# Never publish keys, documents or data exports, wherever they land in $HOME
+*.key
+*.pdf
+*.csv
+*.zip
+*client_secret*.json
+*token*.json
+.ssh/
+.gnupg/
+
+# nvim: only the config is tracked; anything else dropped in this folder stays private
+.config/nvim/*
+!.config/nvim/init.lua
+!.config/nvim/lazy-lock.json
+!.config/nvim/stylua.toml
+!.config/nvim/lua/
+!.config/nvim/after/
+!.config/nvim/ftdetect/
