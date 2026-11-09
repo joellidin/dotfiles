@@ -1,16 +1,13 @@
 local opt = vim.opt
 
 -- Ignore compiled files
-opt.wildignore = "__pycache__"
-opt.wildignore = opt.wildignore + { "*.o", "*~", "*.pyc", "*pycache*" }
+opt.wildignore = { "__pycache__", "*.o", "*~", "*.pyc", "*pycache*" }
 
-opt.wildmode = { "longest", "list", "full" }
+-- First Tab completes the common part and opens the menu, later Tabs cycle the full matches
+opt.wildmode = "longest:full,full"
 
 -- Cool floating window popup menu for completion on command line
 opt.pumblend = 17
-
-opt.wildmode = opt.wildmode - "list"
-opt.wildmode = opt.wildmode + { "longest", "full" }
 
 opt.wildoptions = "pum"
 
