@@ -336,6 +336,8 @@ focus_on_window_activation focus
 
 
 exec                            $BROWSER
+# Touchpad swipes (~/.config/libinput-gestures.conf); i3 ignores the XDG autostart entry for it
+exec --no-startup-id            libinput-gestures
 # exec_always --no-startup-id exec i3-workspace-names-daemon   # not installed; logged "not found" on every start
 exec_always --no-startup-id $HOME/.local/bin/polybar-launch
 exec --no-startup-id $HOME/.local/bin/eww daemon
