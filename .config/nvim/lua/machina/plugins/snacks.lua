@@ -253,6 +253,21 @@ return {
         end,
         desc = "Git commits",
       },
+      {
+        "<leader>gy",
+        function()
+          Snacks.gitbrowse {
+            what = "permalink",
+            open = function(url)
+              vim.fn.setreg("+", url)
+              vim.notify("Copied " .. url, vim.log.levels.INFO, { title = "Git permalink" })
+            end,
+            notify = false,
+          }
+        end,
+        mode = { "n", "x" },
+        desc = "Copy Git permalink",
+      },
 
       -- Grep
       {

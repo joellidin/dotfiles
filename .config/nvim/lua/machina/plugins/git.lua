@@ -69,13 +69,6 @@ return {
     "rhysd/committia.vim",
   },
   {
-    "ruifm/gitlinker.nvim",
-    keys = {
-      { "<leader>gy", desc = "Copy Git permalink" },
-    },
-    opts = {},
-  },
-  {
     "pwntester/octo.nvim",
     enabled = function() return vim.fn.executable("gh") == 1 end,
     opts = {
