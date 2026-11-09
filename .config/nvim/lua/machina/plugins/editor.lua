@@ -119,23 +119,6 @@ return {
   -- Surround
   { "echasnovski/mini.surround", version = "*", opts = {} },
 
-  -- Remote SSH editing (VS Code-like)
-  {
-    "amitds1997/remote-nvim.nvim",
-    version = "*",
-    dependencies = {
-      "nvim-lua/plenary.nvim",
-      "MunifTanjim/nui.nvim",
-    },
-    cmd = { "RemoteStart", "RemoteStop", "RemoteInfo", "RemoteCleanup", "RemoteConfigDel", "RemoteLog" },
-    keys = {
-      { "<leader>Rs", "<cmd>RemoteStart<cr>", desc = "Remote SSH connect" },
-      { "<leader>Ri", "<cmd>RemoteInfo<cr>", desc = "Remote SSH info" },
-      { "<leader>Rx", "<cmd>RemoteStop<cr>", desc = "Remote SSH disconnect" },
-    },
-    opts = {},
-  },
-
   -- Diagnostics viewer
   {
     "folke/trouble.nvim",
