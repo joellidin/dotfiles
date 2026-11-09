@@ -44,7 +44,7 @@ return {
   -- Rust (rustaceanvim auto-configures rust-analyzer, no lspconfig needed)
   {
     "mrcjkb/rustaceanvim",
-    version = "^5",
+    version = "^9",
     lazy = false,
     init = function()
       vim.g.rustaceanvim = {
