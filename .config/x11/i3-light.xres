@@ -27,3 +27,5 @@ i3wm.wsfocus_fg: #0031a9
 ! polybar pill background and text (read by ~/.config/polybar/config.ini)
 i3wm.pill: #fbf7f0
 i3wm.pillfg: #595959
+! focused window border: muted blue (Modus blue #0031a9 mixed into the background)
+i3wm.focus_border: #97a8d4
