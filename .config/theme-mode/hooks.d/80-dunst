@@ -7,6 +7,8 @@ mkdir -p "$cfg/dunstrc.d"
 ln -sfn "../themes/$1.conf" "$cfg/dunstrc.d/50-theme.conf"
 if command -v dunst >/dev/null 2>&1; then
   pkill -x dunst; sleep 0.3
-  setsid -f dunst >/dev/null 2>&1
+  # Start through dunst's own systemd unit so it runs in its own cgroup: started from this hook it would
+  # sit in darkman.service's cgroup and die whenever darkman restarts. Fallback: a plain detached start.
+  systemctl --user start dunst.service 2>/dev/null || setsid -f dunst >/dev/null 2>&1
 fi
 exit 0
