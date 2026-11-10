@@ -1,3 +1,6 @@
+# The profile is sourced by the login session, as .zprofile and again below, and nested shells
+# repeat it; keep only the first copy of each PATH entry (lookup order is unchanged).
+typeset -U path PATH
 source $HOME/.config/zsh/.zprofile
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
