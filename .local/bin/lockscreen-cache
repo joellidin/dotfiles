@@ -1,0 +1,33 @@
+#!/bin/sh
+# lockscreen-cache [--check]
+# Keep betterlockscreen's lock image showing the current wallpaper (~/.local/share/bg, which rotates per mode).
+# The cache records the image it was built from (readlink -f of bg) in current/built-from and is rebuilt (~7 s) when
+# bg resolves to another image. Every `betterlockscreen -u`, even a failed one, wipes current/ and the stamp with it.
+# Called in the background by setbg and ~/.config/theme-mode/hooks.d/40-wallpaper after they repoint bg, and by
+# i3-lock-custom before it locks: normally a no-op, a short wait if a rebuild is still running.
+#   --check   only report "up to date" (exit 0) or "rebuild needed" (exit 1)
+set -eu
+wall="${XDG_DATA_HOME:-$HOME/.local/share}/bg"
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/betterlockscreen"
+stamp="$cache/current/built-from"
+fx="blur,pixel"    # lock screen look; i3-lock-custom locks with the blur one
+blur="1.05"
+
+up_to_date() {
+  [ -f "$cache/current/lock_blur.png" ] && [ "$(cat "$stamp" 2>/dev/null)" = "$(readlink -f "$wall")" ]
+}
+
+if [ "${1:-}" = --check ]; then
+  if up_to_date; then echo "up to date"; exit 0; fi
+  echo "rebuild needed"; exit 1
+fi
+
+mkdir -p "$cache"
+exec 9>"$cache/.lock"
+flock -w 20 9      # one rebuild at a time; a caller that waited re-checks below and usually has nothing left to do
+up_to_date && exit 0
+img=$(readlink -f "$wall")
+[ -f "$img" ] || exit 0
+betterlockscreen -u "$img" --fx "$fx" --blur "$blur"
+[ -f "$cache/current/lock_blur.png" ] || { echo "lockscreen-cache: no lock image after rebuild" >&2; exit 1; }
+printf '%s\n' "$img" > "$stamp"

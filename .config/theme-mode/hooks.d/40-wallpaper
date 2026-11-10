@@ -15,4 +15,5 @@ pick=$(find -L "$pool" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.jpeg' 
 [ -e "$d/bg-$1" ] || exit 0
 ln -sfn "bg-$1" "$d/bg"
 xwallpaper --zoom "$d/bg"
+"$HOME/.local/bin/lockscreen-cache" </dev/null >/dev/null 2>&1 &   # lock screen image follows bg (background, ~7 s)
 exit 0

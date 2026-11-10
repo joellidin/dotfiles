@@ -25,3 +25,6 @@ esac
 # 	pidof dwm >/dev/null && xdotool key super+F12
 
 xwallpaper --zoom "$bgloc"
+
+# The lock screen image follows bg (background; a no-op when it already matches, e.g. at X start).
+"$HOME/.local/bin/lockscreen-cache" </dev/null >/dev/null 2>&1 &

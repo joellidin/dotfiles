@@ -3,15 +3,10 @@
 
 set -euo pipefail
 
-WALL="$HOME/.local/share/bg"          # symlink to your background
-CACHE="$HOME/.cache/betterlockscreen" # where the processed image lives
-EFFECTS="blur,pixel"                  # lock‑screen look
-BLUR_STRENGTH="1.05"                   # blur amount
-
-# (Re)build cache only if it doesn't exist or wallpaper is newer
-if [[ ! -d "$CACHE" || "$WALL" -nt "$CACHE" ]]; then
-    betterlockscreen -u "$WALL" --fx "$EFFECTS" --blur "$BLUR_STRENGTH"
-fi
+# The cached lock image follows the wallpaper: setbg and the theme hook rebuild it in the background
+# (~/.local/bin/lockscreen-cache). Here that is a no-op, a short wait for a rebuild still running, or a rebuild
+# when bg changed some other way. Never let a failed check stop the lock.
+"$HOME/.local/bin/lockscreen-cache" || true
 
 # Lock with the cached image
 betterlockscreen -l blur
