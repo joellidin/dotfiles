@@ -345,7 +345,6 @@ exec --no-startup-id            /usr/lib/policykit-1-gnome/polkit-gnome-authenti
 exec_always --no-startup-id $HOME/.local/bin/polybar-launch
 exec --no-startup-id $HOME/.local/bin/eww daemon
 
-# exec_always                     external_monitor two-monitors right
 
 # workspace 1 output primary
 # workspace 2 output primary
