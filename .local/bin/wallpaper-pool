@@ -28,4 +28,6 @@ slot="${XDG_DATA_HOME:-$HOME/.local/share}/bg-$mode"
 if [ ! -e "$slot" ] || [ -z "$(find -L "$pool" -maxdepth 1 -samefile "$(readlink -f "$slot")" 2>/dev/null)" ]; then
   ln -sfn "$(find "$pool" -maxdepth 1 | sed 1d | shuf -n 1)" "$slot"
 fi
+# the lock screen image follows bg, which may point at the slot just changed (background; no-op otherwise)
+"$HOME/.local/bin/lockscreen-cache" </dev/null >/dev/null 2>&1 &
 echo "$mode pool: $(ls "$pool" | tr '\n' ' ')"
