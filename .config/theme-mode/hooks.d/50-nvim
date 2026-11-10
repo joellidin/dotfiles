@@ -1,6 +1,8 @@
 #!/usr/bin/sh
 # Flip background in every running Neovim. rose-pine (variant auto) picks dawn for light, moon/main for dark.
+# A Neovim waiting at a "Press ENTER" prompt answers no RPC, so give each one 3 s and move on
+# (one such Neovim hung this hook, and every hook after it, for 3 h on 2026-11-10).
 for srv in $(nvr --serverlist 2>/dev/null); do
-  nvr --servername "$srv" --nostart -c "set background=$1" 2>/dev/null
+  timeout 3 nvr --servername "$srv" --nostart -c "set background=$1" 2>/dev/null
 done
 exit 0
