@@ -4,7 +4,12 @@
 # xrdb -merge, so the bar re-reads the ${xrdb:...} colours in ~/.config/polybar/config.ini.
 # eww: daemon up and the always-on left bar (workspaces, agents, keyboard flag) open (idempotent)
 eww="$HOME/.local/bin/eww"
-"$eww" ping >/dev/null 2>&1 || { (cd "$HOME" && "$eww" daemon >/dev/null 2>&1); sleep 0.5; }
+# Long-running parts are started by i3, so they belong to the desktop session in their own process group,
+# whoever runs this script. Started directly from the theme hook they would sit in darkman.service's cgroup
+# (killed when darkman restarts) and in the hook's process group (killed if the hook times out).
+# Fallback without i3: a plain detached start. No ';' or ',' in the command: i3 splits on them.
+session_start() { i3-msg -q "exec --no-startup-id $1" 2>/dev/null || setsid -f sh -c "$1" >/dev/null 2>&1; }
+"$eww" ping >/dev/null 2>&1 || { session_start "cd $HOME && $eww daemon"; sleep 0.5; }
 "$eww" open leftbar >/dev/null 2>&1 &
 
 if ! command -v polybar >/dev/null 2>&1; then
@@ -19,4 +24,4 @@ if pgrep -x polybar >/dev/null 2>&1; then
   pkill -9 -x polybar 2>/dev/null
 fi
 log="${XDG_CACHE_HOME:-$HOME/.cache}/polybar.log"
-polybar -l warning main >>"$log" 2>&1 &
+session_start "polybar -l warning main >>$log 2>&1"
