@@ -43,9 +43,21 @@
 [init]
 	defaultBranch = main
 [merge]
-    conflictstyle = diff3
+    conflictstyle = zdiff3
+[diff]
+	algorithm = histogram
+[push]
+	autoSetupRemote = true
 [pull]
 	rebase = true
+[rebase]
+	autoStash = true
+[branch]
+	sort = -committerdate
+[tag]
+	sort = version:refname
+[help]
+	autocorrect = prompt
 [fetch]
 	prune = true
 [credential "https://gist.github.com"]
