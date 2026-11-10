@@ -6,7 +6,6 @@ source $HOME/.config/zsh/.zprofile
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
 # Path to your oh-my-zsh installation.
-# export ZSH="/home/jlidin/.local/src/oh-my-zsh"
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time oh-my-zsh is loaded, in which case,
@@ -156,17 +155,13 @@ fi
 eval "$(starship init zsh)"
 command -v mise >/dev/null 2>&1 && eval "$(mise activate zsh)"
 
-alias luamake=/home/jlidin/.cache/nvim/nlua/lua-language-server/3rd/luamake/luamake
 
 # History settings
 export HISTSIZE=10000000
 export SAVEHIST=10000000
-export HISTTIMEFORMAT="%F %T: "
 setopt BANG_HIST                 # Treat the '!' character specially during expansion.
 setopt EXTENDED_HISTORY          # Write the history file in the ":start:elapsed;command" format.
-setopt INC_APPEND_HISTORY        # Write to the history file immediately, not when the shell exits.
 setopt SHARE_HISTORY             # Share history between all sessions.
-setopt HIST_EXPIRE_DUPS_FIRST    # Expire duplicate entries first when trimming history.
 setopt HIST_IGNORE_DUPS          # Don't record an entry that was just recorded again.
 setopt HIST_IGNORE_ALL_DUPS      # Delete old recorded entry if new entry is a duplicate.
 setopt HIST_FIND_NO_DUPS         # Do not display a line previously found.
