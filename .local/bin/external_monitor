@@ -11,18 +11,18 @@
 monitor_home() {
     monitors=($(query))
     if [ ! -z "$2" ] && [ "$2" = "right" ]; then
-      xrandr --output ${monitors[-1]} --mode 2560x1440 --left-of eDP-1
+      xrandr --output ${monitors[-1]} --mode 2560x1440 --left-of "$internal"
     else
-      xrandr --output ${monitors[-1]} --mode 2560x1440 --right-of eDP-1
+      xrandr --output ${monitors[-1]} --mode 2560x1440 --right-of "$internal"
     fi
 }
 
 office_one_monitor() {
     monitors=($(query))
     if [ ! -z "$2" ] && [ "$2" = "left" ]; then
-      xrandr --output eDP-1 --mode 1920x1080 --output ${monitors[-1]} --auto --primary --right-of eDP-1
+      xrandr --output "$internal" --auto --output ${monitors[-1]} --auto --primary --right-of "$internal"
     else
-      xrandr --output eDP-1 --mode 1920x1080 --output ${monitors[-1]} --auto --primary --left-of eDP-1
+      xrandr --output "$internal" --auto --output ${monitors[-1]} --auto --primary --left-of "$internal"
     fi
 }
 
@@ -31,23 +31,23 @@ office_two_monitors() {
     if [ "$3" = "rotate" ]; then
       xrandr --output ${monitors[-1]} --auto --right-of ${monitors[-2]}
       if [ ! -z "$2" ] && [ "$2" = "left" ]; then
-        xrandr --output eDP-1 --auto --left-of ${monitors[-2]}
+        xrandr --output "$internal" --auto --left-of ${monitors[-2]}
         # xrandr --output eDP-1 --mode 1920x1080 --output DVI-I-3-2 --auto --primary --left-of eDP-1
       elif [ ! -z "$2" ] && [ "$2" = "off" ]; then
-        xrandr --output eDP-1 --off
+        xrandr --output "$internal" --off
       else
-        xrandr --output eDP-1 --auto --right-of ${monitors[-1]}
+        xrandr --output "$internal" --auto --right-of ${monitors[-1]}
         # xrandr --output eDP-1 --mode 1920x1080 --output DVI-I-3-2 --auto --primary --right-of eDP-1
       fi
     else
       xrandr --output ${monitors[-2]} --auto --right-of ${monitors[-1]}
       if [ ! -z "$2" ] && [ "$2" = "left" ]; then
-        xrandr --output eDP-1 --auto --left-of ${monitors[-1]}
+        xrandr --output "$internal" --auto --left-of ${monitors[-1]}
         # xrandr --output eDP-1 --mode 1920x1080 --output DVI-I-3-2 --auto --primary --left-of eDP-1
       elif [ ! -z "$2" ] && [ "$2" = "off" ]; then
-        xrandr --output eDP-1 --off
+        xrandr --output "$internal" --off
       else
-        xrandr --output eDP-1 --auto --right-of ${monitors[-2]}
+        xrandr --output "$internal" --auto --right-of ${monitors[-2]}
         # xrandr --output eDP-1 --mode 1920x1080 --output DVI-I-3-2 --auto --primary --right-of eDP-1
       fi
     fi
@@ -58,6 +58,8 @@ query() {
 }
 
 xrandr --auto
+# the laptop panel: eDP-1 on Intel, eDP on amdgpu (this ZBook)
+internal=$(xrandr -q | awk '/^eDP[^ ]* connected/ {print $1; exit}')
 
 case "$1" in
     home) monitor_home $@;;
