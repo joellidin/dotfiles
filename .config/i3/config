@@ -182,7 +182,9 @@ bindsym $mod+d                  exec --no-startup-id dmenu_run
 bindsym $mod+Ctrl+d             exec --no-startup-id i3-dmenu-desktop
 
 
-bindsym $mod+f			fullscreen toggle
+# fullscreen toggle via bar-control: the eww left bar fades out before the window goes fullscreen and comes
+# back after it leaves (apps going fullscreen by themselves are handled by the bar-control watcher)
+bindsym $mod+f			exec --no-startup-id $HOME/.local/bin/bar-control fullscreen-toggle
 bindsym $mod+Shift+f		mode "$freeze" ;; exec --no-startup-id notify-send "Distraction-free mode activated." "Press Super+Shift+f to return."
 
 bindsym $mod+g			workspace prev
@@ -211,7 +213,8 @@ bindsym $mod+Shift+l		move right 30
 
 # bindsym $mod+v		exec --no-startup-id $term -e $EDITOR -c "VimwikiIndex"
 
-bindsym $mod+b			bar mode toggle
+# hide or show both top bars, polybar and the eww left bar ("bar mode toggle" only drove i3bar)
+bindsym $mod+b			exec --no-startup-id $HOME/.local/bin/bar-control toggle
 # bindsym $mod+Shift+b		floating toggle; sticky toggle; exec --no-startup-id hover left
 
 # bindsym $mod+Shift+n		floating toggle; sticky toggle; exec --no-startup-id hover right
@@ -344,6 +347,9 @@ exec --no-startup-id            /usr/lib/policykit-1-gnome/polkit-gnome-authenti
 # exec_always --no-startup-id exec i3-workspace-names-daemon   # not installed; logged "not found" on every start
 exec_always --no-startup-id $HOME/.local/bin/polybar-launch
 exec --no-startup-id $HOME/.local/bin/eww daemon
+# close the eww left bar while a fullscreen window is visible (override-redirect, so i3 cannot cover it).
+# exec, not exec_always: it is single-instance and reconnects by itself after an i3 restart
+exec --no-startup-id $HOME/.local/bin/bar-control watch
 
 
 # workspace 1 output primary

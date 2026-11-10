@@ -1,8 +1,9 @@
 #!/bin/sh
-# polybar-launch: (re)start polybar and make sure the eww left bar is open.
+# polybar-launch: (re)start polybar and bring the eww left bar in line (bar-control sync).
 # Run by i3 (exec_always in ~/.config/i3/config) and by ~/.config/theme-mode/hooks.d/70-i3 after
 # xrdb -merge, so the bar re-reads the ${xrdb:...} colours in ~/.config/polybar/config.ini.
-# eww: daemon up and the always-on left bar (workspaces, agents, keyboard flag) open (idempotent)
+# eww: daemon up, and the left bar (workspaces, agents, keyboard flag) open unless a fullscreen window is
+# visible or the bars are hidden with $mod+b (idempotent; bar-control waits up to 5 s for a new daemon)
 eww="$HOME/.local/bin/eww"
 # Long-running parts are started by i3, so they belong to the desktop session in their own process group,
 # whoever runs this script. Started directly from the theme hook they would sit in darkman.service's cgroup
@@ -10,7 +11,7 @@ eww="$HOME/.local/bin/eww"
 # Fallback without i3: a plain detached start. No ';' or ',' in the command: i3 splits on them.
 session_start() { i3-msg -q "exec --no-startup-id $1" 2>/dev/null || setsid -f sh -c "$1" >/dev/null 2>&1; }
 "$eww" ping >/dev/null 2>&1 || { session_start "cd $HOME && $eww daemon"; sleep 0.5; }
-"$eww" open leftbar >/dev/null 2>&1 &
+"$HOME/.local/bin/bar-control" sync >/dev/null 2>&1 &
 
 if ! command -v polybar >/dev/null 2>&1; then
   notify-send -u critical "polybar is not installed" "sudo apt install polybar" 2>/dev/null
@@ -25,3 +26,7 @@ if pgrep -x polybar >/dev/null 2>&1; then
 fi
 log="${XDG_CACHE_HOME:-$HOME/.cache}/polybar.log"
 session_start "polybar -l warning main >>$log 2>&1"
+# bars hidden with $mod+b (bar-control toggle): hide the new bar as soon as its IPC answers (up to 3 s)
+if [ -e "${XDG_RUNTIME_DIR:-/tmp}/bar-hidden" ]; then
+  i=0; until polybar-msg cmd hide >/dev/null 2>&1 || [ $i -ge 30 ]; do sleep 0.1; i=$((i + 1)); done
+fi
