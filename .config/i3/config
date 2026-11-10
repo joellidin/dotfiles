@@ -33,6 +33,10 @@ set_from_resource $wsfocus_fg i3wm.wsfocus_fg #32302f
 # #---Basic Definitions---# #
 default_border pixel 2
 default_floating_border pixel 2
+# Keep this rule even with default_border. Apps that ask for no decorations via _MOTIF_WM_HINTS
+# (Ghostty with window-decoration = false) get border none, because i3 applies the hint after
+# default_border. for_window runs after the hint. Keep it above the other border rules so they win.
+for_window [class="^.*"] border pixel 2
 gaps inner 5
 gaps outer 5
 set $term --no-startup-id $TERMINAL
