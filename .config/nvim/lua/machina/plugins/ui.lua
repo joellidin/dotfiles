@@ -64,10 +64,6 @@ return {
     end,
   },
 
-  { "catppuccin/nvim", name = "catppuccin", lazy = true },
-
-  { "rebelot/kanagawa.nvim", lazy = true },
-
   {
     "nvim-lualine/lualine.nvim",
     config = function()

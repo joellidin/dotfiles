@@ -131,14 +131,4 @@ return {
       { "<leader>tm", "<cmd>RenderMarkdown toggle<cr>", desc = "Toggle markdown rendering" },
     },
   },
-
-  -- Markdown preview
-  {
-    "iamcco/markdown-preview.nvim",
-    build = "cd app && npm install",
-    config = function()
-      vim.g.mkdp_filetypes = { "markdown" }
-    end,
-    ft = { "markdown" },
-  },
 }
