@@ -189,18 +189,13 @@ if [[ -n $HERDR_ENV && -z $VIRTUAL_ENV && -d .venv ]]; then
     source .venv/bin/activate
 fi
 
-# Project switcher on ^f. Replaces the old tmux_sessionizer widget.
+# Project switcher on ^f.
 #   inside herdr   -> herdr-sessionizer focuses or creates a workspace
-#   inside tmux    -> the existing tmux-sessionizer popup
 #   plain terminal -> herdr-sessionizer starts or attaches herdr in the chosen project
-# No stdout redirect on the herdr branch: the script may exec the herdr TUI.
+# No stdout redirect: the script may exec the herdr TUI.
 function sessionizer() {
     zle push-input
-    if [[ -n $TMUX && -z $HERDR_ENV ]]; then
-        BUFFER="tmux display-popup -E 'tmux-sessionizer' > /dev/null 2>&1 || tmux-sessionizer > /dev/null"
-    else
-        BUFFER="herdr-sessionizer"
-    fi
+    BUFFER="herdr-sessionizer"
     zle accept-line
 }
 zle -N sessionizer
@@ -218,50 +213,3 @@ zstyle ':completion:*' cache-path $XDG_CACHE_HOME/zsh/zcompcache
 . "$HOME/.basilica/env"
 
 if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
-
-# Compute tmux session name for a directory (walks up to find .bare root)
-_wt_session_name() {
-  local dir="$1" d="$1"
-  while [[ "$d" != "/" ]]; do
-    if [[ -d "$d/.bare" ]]; then
-      local project=$(basename "$d" | tr . _)
-      local rel=$(echo "$dir" | sed "s|^$d/||" | tr '/' '-' | tr . _)
-      echo "${project}-${rel}"
-      return
-    fi
-    d="$(dirname "$d")"
-  done
-  echo "$(basename "$dir" | tr . _)"
-}
-
-# Wrap wt to create/switch tmux sessions on worktree switch/remove
-if (( $+functions[wt] )); then
-  functions[_wt_orig]=$functions[wt]
-  wt() {
-    local prev_dir="$(pwd)"
-    local old_session=$(_wt_session_name "$prev_dir")
-    _wt_orig "$@"
-    local ret=$?
-    if [[ $ret -eq 0 && -n "$TMUX" ]]; then
-      local dir="$(pwd)"
-      local new_session=$(_wt_session_name "$dir")
-      if [[ "$1" == "switch" ]]; then
-        if ! tmux has-session -t="$new_session" 2>/dev/null; then
-          tmux new-session -ds "$new_session" -c "$dir"
-          [[ -d "$dir/.venv" ]] && tmux send-keys -t "$new_session.0" "source .venv/bin/activate" ENTER
-        fi
-        tmux switch-client -t "$new_session"
-        cd "$prev_dir"
-      elif [[ "$1" == "remove" ]]; then
-        if ! tmux has-session -t="$new_session" 2>/dev/null; then
-          tmux new-session -ds "$new_session" -c "$dir"
-          [[ -d "$dir/.venv" ]] && tmux send-keys -t "$new_session.0" "source .venv/bin/activate" ENTER
-        fi
-        tmux switch-client -t "$new_session"
-        [[ "$old_session" != "$new_session" ]] && tmux kill-session -t="$old_session" 2>/dev/null
-        # Don't cd back -- prev_dir was the removed worktree
-      fi
-    fi
-    return $ret
-  }
-fi
