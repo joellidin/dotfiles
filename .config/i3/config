@@ -356,6 +356,8 @@ exec --no-startup-id $HOME/.local/bin/eww daemon
 # close the eww left bar while a fullscreen window is visible (override-redirect, so i3 cannot cover it).
 # exec, not exec_always: it is single-instance and reconnects by itself after an i3 restart
 exec --no-startup-id $HOME/.local/bin/bar-control watch
+# new windows split the focused one along its longer side, a dwindle spiral (~/.config/systemd/user/autotiling.service)
+exec --no-startup-id systemctl --user start autotiling.service
 
 
 # workspace 1 output primary

@@ -1,0 +1,10 @@
+[Unit]
+Description=autotiling: split each new i3 window along its longer side (dwindle layout)
+# Started by i3 (exec in ~/.config/i3/config): i3 sessions here never reach graphical-session.target.
+
+[Service]
+ExecStart=/usr/bin/autotiling
+# autotiling exits when i3 restarts ($mod+F2) because its IPC connection closes, and it has no
+# single-instance guard; a unit gives exactly one copy that comes back after a restart
+Restart=always
+RestartSec=1
