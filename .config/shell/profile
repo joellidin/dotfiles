@@ -61,7 +61,7 @@ export PULS_MCP_TOKEN="$(grep -s '^PULS_MCP_TOKEN=' "$HOME/Documents/health-expo
 # mise shims make go, node, zig, delta, gh, kubectl, vault and gopass
 # available to non-interactive shells too (git pager, i3 bindings, scripts).
 # Interactive zsh replaces the shims with real paths via `mise activate`.
-export PATH=$GOPATH/bin:$HOME/.local/share/mise/shims:$HOME/.local/share/npm/bin:$HOME/.pub-cache/bin:$PATH
+export PATH=$GOPATH/bin:$HOME/.local/share/mise/shims:$HOME/.local/share/npm/bin:$PATH
 
 . $CARGO_HOME/env
 
