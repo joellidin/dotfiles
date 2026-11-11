@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Spotlight-style search for rofi (script mode). Started by ~/.local/bin/spotlight ($mod+space).
 
-Lists open windows, herdr agents, apps, quick actions and recent files in one fuzzy-filtered list.
+Lists open windows, herdr agents, apps, quick actions, recent files and the files in the usual document
+folders in one fuzzy-filtered list.
 Typed text that matches nothing, confirmed with Enter (or Ctrl+Enter at any time):
   - a sum such as 2^10/3 or sqrt(2)*pi shows the result; Enter on it copies it to the clipboard
   - anything else lists files and folders under ~ whose names match, plus a web search
@@ -122,8 +123,52 @@ def recent():
         if href.startswith("file://"):
             p = urllib.parse.unquote(href[7:])
             if os.path.exists(p): items.append((b.get("modified", ""), p))
-    for _, p in sorted(items, reverse=True)[:25]:
+    shown = [p for _, p in sorted(items, reverse=True)[:25]]
+    for p in shown:
         row(os.path.basename(p), "Recent file", file_icon(p), f"file\t{p}", "", os.path.dirname(p).replace(HOME, "~"))
+    return set(shown)
+
+# Files from these folders are in the opening list, so rofi matches them while typing.
+DOC_DIRS = ["Documents", "Downloads", "Desktop", "Pictures", "Videos", "Music", "notes"]
+# Never listed up front. The Enter search below can still reach it.
+PRIVATE = os.path.join(HOME, "Documents", "private")
+DOC_SKIP = {"node_modules", "venv", "__pycache__", "snap"}  # hidden folders are skipped anyway
+# Code repos are not walked (thousands of source files); only these document types are taken from them.
+REPO_DOCS = ["pdf", "doc", "docx", "odt", "rtf", "xls", "xlsx", "ods", "ppt", "pptx", "odp", "epub"]
+DOC_DEPTH, DOC_CAP = 8, 3000
+
+def documents(seen):
+    tops = [os.path.join(HOME, d) for d in DOC_DIRS]
+    stack, files, repos = [(t, 0) for t in tops if os.path.isdir(t)], [], []
+    def add(p):
+        try: p.encode("utf-8"); files.append((os.stat(p).st_mtime, p))
+        except (OSError, UnicodeEncodeError): pass
+    while stack:
+        d, depth = stack.pop()
+        try: ents = list(os.scandir(d))
+        except OSError: continue
+        if depth and any(e.name == ".git" for e in ents):
+            repos.append(d)
+            continue
+        for e in ents:
+            if e.name.startswith(".") or e.name in DOC_SKIP or e.name.endswith((".part", ".crdownload")): continue
+            try:
+                if e.is_dir(follow_symlinks=False):
+                    if e.path != PRIVATE and depth < DOC_DEPTH: stack.append((e.path, depth + 1))
+                elif e.is_file() and not (e.is_symlink() and os.path.realpath(e.path).startswith(PRIVATE + "/")):
+                    add(e.path)
+            except OSError: pass
+    if repos:  # fd skips gitignored and hidden files inside each repo
+        cmd = ["fdfind", "-t", "f"] + [a for x in REPO_DOCS for a in ("-e", x)] + ["--", ".", *repos]
+        try: found = subprocess.run(cmd, capture_output=True, text=True, timeout=2).stdout.splitlines()
+        except Exception: found = []
+        for p in found: add(p)
+    for _, p in sorted(files, reverse=True)[:DOC_CAP]:
+        if p in seen: continue
+        folder = os.path.dirname(p)
+        # the parent folder name as a search word, so "taxes pdf" finds pdfs in a taxes folder; the whole path
+        # made fuzzy matching hit about 20x more unrelated rows and swallowed the Enter web and file search
+        row(os.path.basename(p), "File", file_icon(p), f"file\t{p}", os.path.basename(folder), folder.replace(HOME, "~"))
 
 # ---------------- calculator ----------------
 OPS = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul, ast.Div: operator.truediv,
@@ -192,4 +237,4 @@ if RETV == 2 and ARG.strip():
 
 header(message="")
 APPS = load_apps()
-windows(); agents(); actions(); apps(APPS); recent()
+windows(); agents(); actions(); apps(APPS); documents(recent() or set())
