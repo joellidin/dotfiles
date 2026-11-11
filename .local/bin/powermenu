@@ -1,0 +1,36 @@
+#!/bin/sh
+# powermenu: lock, suspend, log out, reboot or shut down from a row of rofi buttons. Bound to $mod+Shift+Escape
+# and the polybar power button. Log out, reboot and shut down ask once more, with Cancel preselected.
+# Look: ~/.config/rofi/theme.rasi (follows dark/light); the button row is set up here with -theme-str.
+buttons='window { width: COLSpx; }
+mainbox { children: [ message, listview ]; }
+textbox { horizontal-align: 0.5; text-color: @dim; }
+listview { columns: N; lines: 1; spacing: 14px; fixed-columns: true; }
+element { orientation: vertical; padding: 30px 0 24px 0; border-radius: 22px; children: [ element-text ]; }
+element normal.normal, element alternate.normal { background-color: @field; }
+element-text { horizontal-align: 0.5; }'
+
+# a button: a large glyph from Symbols Nerd Font above its label
+btn() { printf '<span font_family="Symbols Nerd Font" size="180%%">%s</span>\n%s' "$1" "$2"; }
+
+# pick MESSAGE BUTTON...: show the buttons in one row and print the index of the chosen one
+pick() {
+  mesg=$1; shift
+  n=$#; width=$((n * 250 + 80))
+  printf '%s|' "$@" | sed '$ s/|$//' |
+    rofi -dmenu -sep "|" -eh 3 -markup-rows -format i -no-custom -selected-row 0 -mesg "$mesg" \
+      -theme-str "$(printf '%s' "$buttons" | sed "s/COLS/$width/; s/N;/$n;/")"
+}
+
+# confirm WHAT GLYPH: Cancel or WHAT, exit 0 only for WHAT
+confirm() { [ "$(pick "$1 now?" "$(btn 󰅖 Cancel)" "$(btn "$2" "$1")")" = 1 ]; }
+
+up=$(uptime -p | sed 's/^up //')
+case "$(pick "$(hostname)  ·  up $up" \
+  "$(btn 󰌾 Lock)" "$(btn 󰤄 Suspend)" "$(btn 󰍃 'Log out')" "$(btn 󰜉 Reboot)" "$(btn 󰐥 'Shut down')")" in
+  0) loginctl lock-session ;;  # xss-lock locks, the same path as idle and lid close
+  1) systemctl suspend ;;
+  2) confirm 'Log out' 󰍃 && i3-msg exit ;;
+  3) confirm 'Reboot' 󰜉 && systemctl reboot ;;
+  4) confirm 'Shut down' 󰐥 && systemctl poweroff ;;
+esac

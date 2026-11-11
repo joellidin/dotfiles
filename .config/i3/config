@@ -123,7 +123,7 @@ bindsym $mod+Ctrl+space           exec --no-startup-id $HOME/.config/eww/scripts
 # bindsym $mod+Pause              exec $HOME/.scripts/toggle_microphone.sh
 
 bindsym $mod+Escape		workspace prev
-bindsym $mod+Shift+Escape 	exec --no-startup-id $HOME/.local/bin/shutdown_menu
+bindsym $mod+Shift+Escape 	exec --no-startup-id $HOME/.local/bin/powermenu
 bindsym $mod+Ctrl+l             exec --no-startup-id "$HOME/.local/bin/i3-lock-custom"
 
 # mode "$mode_system" {
