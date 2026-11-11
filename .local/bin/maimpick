@@ -2,14 +2,21 @@
 
 # This is bound to Shift+PrintScreen by default, requires maim. It lets you
 # choose the kind of screenshot to take, including copying the image or even
-# highlighting an area to copy. scrotcucks on suicidewatch right now.
+# highlighting an area to copy.
+# Pick with the number keys 1-6 (instant), by typing to filter, or with the mouse.
 
 folder=$HOME/Pictures
-case "$(printf "a selected area\\ncurrent window\\nfull screen\\na selected area (copy)\\ncurrent window (copy)\\nfull screen (copy)" | dmenu -l 6 -i -p "Screenshot which area?")" in
-	"a selected area") maim -s $folder/pic-selected-"$(date '+%y%m%d-%H%M-%S').png" ;;
-	"current window") maim -i "$(xdotool getactivewindow)" $folder/pic-window-"$(date '+%y%m%d-%H%M-%S').png" ;;
-	"full screen") maim $folder/pic-full-"$(date '+%y%m%d-%H%M-%S').png" ;;
-	"a selected area (copy)") maim -s | xclip -selection clipboard -t image/png ;;
-	"current window (copy)") maim -i "$(xdotool getactivewindow)" | xclip -selection clipboard -t image/png ;;
-	"full screen (copy)") maim | xclip -selection clipboard -t image/png ;;
+stamp() { date '+%y%m%d-%H%M-%S'; }
+choice=$(printf '%s\n' "a selected area" "current window" "full screen" \
+    "a selected area (copy)" "current window (copy)" "full screen (copy)" |
+  rofi -dmenu -i -no-custom -format i -p "Screenshot" \
+    -kb-select-1 1 -kb-select-2 2 -kb-select-3 3 -kb-select-4 4 -kb-select-5 5 -kb-select-6 6 \
+    -theme-str 'element { children: [ element-index, element-text ]; } element-index { text-color: inherit; }') || exit 1
+case "$choice" in
+	0) maim -s "$folder/pic-selected-$(stamp).png" ;;
+	1) maim -i "$(xdotool getactivewindow)" "$folder/pic-window-$(stamp).png" ;;
+	2) maim "$folder/pic-full-$(stamp).png" ;;
+	3) maim -s | xclip -selection clipboard -t image/png ;;
+	4) maim -i "$(xdotool getactivewindow)" | xclip -selection clipboard -t image/png ;;
+	5) maim | xclip -selection clipboard -t image/png ;;
 esac

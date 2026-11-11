@@ -184,8 +184,8 @@ set $freeze Distraction-free mode (super+shift+f to reactivate bindings)
 mode "$freeze" { bindsym $mod+Shift+f mode "default"
 }
 
-bindsym $mod+d                  exec --no-startup-id dmenu_run
-bindsym $mod+Ctrl+d             exec --no-startup-id i3-dmenu-desktop
+bindsym $mod+d                  exec --no-startup-id rofi -show run
+bindsym $mod+Ctrl+d             exec --no-startup-id rofi -show drun -show-icons
 
 
 # fullscreen toggle via bar-control: the eww left bar fades out before the window goes fullscreen and comes

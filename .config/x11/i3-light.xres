@@ -15,11 +15,6 @@ i3wm.base0C: #005e8b
 i3wm.base0D: #0031a9
 i3wm.base0E: #721045
 i3wm.base0F: #884900
-! dmenu colours (read by a dmenu wrapper, see theme-mode notes)
-dmenu.background: #fbf7f0
-dmenu.foreground: #595959
-dmenu.selbackground: #0031a9
-dmenu.selforeground: #fbf7f0
 ! focused workspace pill: pale blue tint with blue text
 i3wm.wsfocus_border: #ccdfff
 i3wm.wsfocus_bg: #ccdfff
