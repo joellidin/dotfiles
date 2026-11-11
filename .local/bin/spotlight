@@ -1,14 +1,7 @@
 #!/bin/sh
-# spotlight: Spotlight-style search (rofi script mode ~/.config/rofi/spotlight/spotlight.py + spotlight.rasi),
-# coloured from the X resources that theme-mode switches. Bound to $mod+space in ~/.config/i3/config.
+# spotlight: Spotlight-style search (rofi script mode ~/.config/rofi/spotlight/spotlight.py + spotlight.rasi).
+# Colours follow dark/light through ~/.config/rofi/colors.rasi. Bound to $mod+space in ~/.config/i3/config.
 # Pressing the key again or Escape closes it.
 if pgrep -x rofi >/dev/null 2>&1; then pkill -x rofi; exit 0; fi
-q() { xrdb -query 2>/dev/null | awk -v k="$1:" '$1==k{print $2; exit}'; }
-bg=$(q i3wm.pill);     bg=${bg:-#3c3836}
-field=$(q i3wm.base02); field=${field:-#504945}
-fg=$(q i3wm.base06);   fg=${fg:-#ebdbb2}
-dim=$(q i3wm.base04);  dim=${dim:-#bdae93}
-accent=$(q i3wm.base0D); accent=${accent:-#83a598}
 dir="$HOME/.config/rofi/spotlight"
-exec rofi -show spotlight -modes "spotlight:$dir/spotlight.py" -theme "$dir/spotlight.rasi" \
-  -theme-str "* { bg: $bg; field: $field; fg: $fg; dim: $dim; accent: $accent; on-accent: $bg; edge: $field; }" "$@"
+exec rofi -show spotlight -modes "spotlight:$dir/spotlight.py" -theme "$dir/spotlight.rasi" "$@"

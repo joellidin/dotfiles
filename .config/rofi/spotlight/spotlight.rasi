@@ -1,21 +1,23 @@
-/* Spotlight-style launcher (rofi 2.0). Colours are injected by ~/.local/bin/spotlight with -theme-str from the
-   X resources that theme-mode switches, so it follows dark/light. Layout: one centred card, big search field, rows
-   with large icons and a dim type label, selection as a solid accent pill. */
+/* Spotlight-style launcher (rofi 2.0). Colours come from ~/.config/rofi/colors.rasi, which gen-colors rewrites on
+   every dark/light switch (the same file the other rofi menus use). Layout: one centred card, big search field,
+   rows with large icons and a dim type label, selection as a solid accent pill. */
 configuration {
   show-icons: true;
   icon-theme: "Yaru";
   sort: true;
   sorting-method: "fzf";
   matching: "fuzzy";
-  hover-select: true;
+  hover-select: false;  /* a resting pointer must not steal the selection; a click still opens a row */
   me-select-entry: "";
   me-accept-entry: "MousePrimary";
   kb-cancel: "Escape,Super+space";
   scroll-method: 0;
 }
 
+@import "~/.config/rofi/colors.rasi"
+
 * {
-  bg: #fbf7f0; field: #e0d8cc; fg: #1e1e1e; dim: #595959; accent: #0031a9; on-accent: #fbf7f0; edge: #e0d8cc;
+  edge: @field;
   font: "JetBrainsMono Nerd Font 13";
   background-color: transparent;
   text-color: @fg;

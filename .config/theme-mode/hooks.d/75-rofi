@@ -1,0 +1,4 @@
+#!/usr/bin/sh
+# rofi colours for $1 (dark|light): regenerate ~/.config/rofi/colors.rasi from the X resources that 70-i3 has
+# just merged. rofi reads its theme at every launch, so the next menu already uses the new colours.
+exec "${XDG_CONFIG_HOME:-$HOME/.config}/rofi/gen-colors"
