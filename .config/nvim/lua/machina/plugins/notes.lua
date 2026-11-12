@@ -344,7 +344,7 @@ return {
       { "<leader>oP", function()
         local function to_kebab(s)
           return s:gsub("(%l)(%u)", "%1-%2"):gsub("(%u+)(%u%l)", "%1-%2")
-            :lower():gsub("[^%w]+", "-"):gsub("^-+|-+$", "")
+            :lower():gsub("[^%w]+", "-"):gsub("^%-+", ""):gsub("%-+$", "")
         end
 
         -- Default to the herdr workspace label in kebab-case (strip branch suffix for worktree workspaces)
