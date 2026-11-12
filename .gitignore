@@ -10,6 +10,12 @@
 .config/gtk-3.0/settings.ini
 .config/gtk-4.0/settings.ini
 .config/dunst/dunstrc.d/
+.config/eww/_colors.scss
+.config/rofi/colors.rasi
+
+# Python bytecode and launchers that uv tools install next to the scripts
+.local/bin/__pycache__/
+.local/bin/lidin-deploy
 
 # Installed by TPM, not config
 .config/tmux/plugins/
