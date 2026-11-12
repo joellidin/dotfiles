@@ -20,6 +20,7 @@
 (defvar cal_more false)
 (defvar cal_month false)
 (defvar cal_mon 1)        ; which of calendar.months the grid shows: 0 last, 1 this, 2 next month
+(defvar cal_day "")       ; the day picked in the month grid (YYYY-MM-DD), its events show under the grid
 
 (defpoll kbd        :interval "30s" :initial "⌨" "scripts/kbd")
 (defpoll battery    :interval "10s" :run-while control_open :initial '{"percent":0,"status":"Unknown","ac":false,"time":"","icon":""}' "scripts/battery")
@@ -28,7 +29,7 @@
 (defpoll toggles    :interval "2s" :run-while control_open :initial '{"wifi":true,"bt":false,"dnd":false,"dark":true,"profile":"balanced"}' "scripts/toggles")
 (defpoll audio      :interval "3s" :run-while control_open :initial '{"sinks":[],"sources":[],"sink_name":"","source_name":""}' "scripts/audio")
 (defpoll agents     :interval "2s" :run-while agents_open  :initial '[]' "scripts/agents")
-(defpoll calendar   :interval "60s" :run-while calendar_open :initial '{"title":"","month":"","empty":"","preview":[],"more":[],"more_count":0,"more_hidden":0,"more_tail":[],"ongoing":[],"months":[],"connected":false,"status":""}' "scripts/calendar")
+(defpoll calendar   :interval "60s" :run-while calendar_open :initial '{"title":"","month":"","empty":"","preview":[],"more":[],"more_count":0,"more_hidden":0,"more_tail":[],"ongoing":[],"months":[],"day_rows":{},"day_more":{},"day_titles":{},"connected":false,"status":""}' "scripts/calendar")
 (defpoll wifi       :interval "5s" :run-while wifi_open    :initial '{"enabled":true,"active":"","networks":[]}' "scripts/wifi")
 
 ;; ---------- left bar: workspaces, agents, keyboard flag ----------
@@ -95,7 +96,7 @@
     (box :orientation "v" :space-evenly false :spacing 12   ; each `for` sits alone in its box: eww 0.6 moves a
       (for g in {calendar.preview} (agenda-day :g g)))      ; for loop's children to the end of a shared box on update
     (box :orientation "v" :space-evenly false :visible {calendar.more_count > 0}
-      (disclosure :open cal_more :var "cal_more" :text "More events (${calendar.more_count})")
+      (disclosure :open cal_more :var "cal_more" :fold "cal_month" :text "More events (${calendar.more_count})")
       (revealer :reveal cal_more :transition "slidedown" :duration "150ms"
         (box :class "more" :orientation "v" :space-evenly false :spacing 12
           (box :orientation "v" :space-evenly false :spacing 12 (for g in {calendar.more} (agenda-day :g g)))
@@ -108,44 +109,70 @@
     (box :class "ongoing" :orientation "v" :space-evenly false :visible {arraylength(calendar.ongoing) > 0}
       (for e in {calendar.ongoing} (ongoing-row :e e)))
     (box :class "month" :orientation "v" :space-evenly false
-      (disclosure :open cal_month :var "cal_month" :text {calendar.month})
+      (disclosure :open cal_month :var "cal_month" :fold "cal_more" :text {calendar.month})
       (revealer :reveal cal_month :transition "slidedown" :duration "150ms"
         (month-grid)))
     (label :class "agenda-status" :visible {calendar.status != ""} :halign "start" :xalign 0
            :text {calendar.status})))
 
 ;; The month grid (eww's calendar widget cannot mark days): view()'s months holds last, this and next month, cal_mon
-;; picks one, the arrows flip within those three. Every grid has 6 weeks and every dot row a fixed height, so the
-;; popup keeps its size when flipping. It sits in a collapsed revealer, so no :visible in here: the dots come from a
-;; list, each `for` alone in its box, and expressions must work while months is still [] (after a reload).
+;; picks one, the arrows flip within those three (and drop the picked day). Every grid has 6 weeks and every dot row a
+;; fixed height, so the popup keeps its size when flipping. It sits in a collapsed revealer, so no :visible in here:
+;; the dots and the day panel come from lists, each `for` alone in its box, and expressions must work while months is
+;; still [] (after a reload).
 (defwidget month-grid []
   (box :class "cal" :orientation "v" :space-evenly false
     (box :class "cal-nav" :space-evenly false
-      (button :class "cal-arrow ${cal_mon == 0 ? 'off' : ''}" :onclick "${EWW_CMD} update cal_mon=${cal_mon == 2 ? 1 : 0}" "‹")
+      (button :class "cal-arrow ${cal_mon == 0 ? 'off' : ''}"
+              :onclick "${EWW_CMD} update cal_mon=${cal_mon == 2 ? 1 : 0} ${cal_mon == 0 ? '' : 'cal_day='}" "‹")
       (label :class "cal-mtitle" :hexpand true :text {calendar.months[cal_mon]?.title ?: ""})
-      (button :class "cal-arrow ${cal_mon == 2 ? 'off' : ''}" :onclick "${EWW_CMD} update cal_mon=${cal_mon == 0 ? 1 : 2}" "›"))
+      (button :class "cal-arrow ${cal_mon == 2 ? 'off' : ''}"
+              :onclick "${EWW_CMD} update cal_mon=${cal_mon == 0 ? 1 : 2} ${cal_mon == 2 ? '' : 'cal_day='}" "›"))
     (box :class "cal-head" :space-evenly false
       (label :class "cal-wk" :text "Wk")
-      (box :hexpand true :homogeneous true
+      (box :hexpand true
         (label :text "Mo") (label :text "Tu") (label :text "We") (label :text "Th")
         (label :text "Fr") (label :text "Sa") (label :text "Su")))
     (box :orientation "v" :space-evenly false
       (for w in {calendar.months[cal_mon]?.weeks ?: "[]"}
         (box :class "cal-week" :space-evenly false
           (label :class "cal-wk" :text {w.wk})
-          (box :hexpand true :homogeneous true
-            (for x in {w.days} (cal-day :x x))))))))
+          (box :hexpand true
+            (for x in {w.days} (cal-day :x x))))))
+    ; the picked day's panel: a list of one item while a day is picked, none otherwise
+    (box :orientation "v" :space-evenly false
+      (for d in {cal_day == "" ? [] : [cal_day]} (day-panel :d d)))))
 
-;; a day number with one dot per source that has something that day (google, runna)
+;; a day number with one dot per source that has something that day (google, runna). A click picks the day (any
+;; cell, the dimmed days of the months around too: they are all in the fetch window), a second click drops it.
 (defwidget cal-day [x]
-  (box :class "cal-day ${x.in_month ? '' : 'out'} ${x.today ? 'today' : ''}" :orientation "v" :space-evenly false
-    (label :class "cal-num" :text {x.d})
-    (box :class "cal-dots" :halign "center" :height 7 :space-evenly false :spacing 4
-      (for s in {x.dots} (box :class "ev-dot ${s} cal-dot" :valign "center" :width 6 :height 6)))))
+  (eventbox :cursor "pointer" :onclick "${EWW_CMD} update cal_day=${cal_day == x.date ? '' : x.date}"
+    (box :class "cal-day ${x.in_month ? '' : 'out'} ${x.today ? 'today' : ''} ${cal_day == x.date ? 'sel' : ''}"
+         :orientation "v" :space-evenly false
+      (label :class "cal-num" :text {x.d})
+      (box :class "cal-dots" :halign "center" :height 7 :space-evenly false :spacing 4
+        (for s in {x.dots} (box :class "ev-dot ${s} cal-dot" :valign "center" :width 6 :height 6))))))
 
-;; a ▸/▾ toggle for the boolean eww variable named var
-(defwidget disclosure [open var text]
-  (button :class "disclosure" :onclick "${EWW_CMD} update ${var}=${!open}"
+;; the events of the day d picked in the grid, as agenda rows (a click opens the details, as above), at most
+;; calendar-fetch's DAY_ROWS of them and a "+N more" line, or one quiet line for a day with nothing. day_rows holds
+;; only days with events, so a missing key (and a view from before day_rows, via ?.) falls back to [].
+(defwidget day-panel [d]
+  (box :class "cal-dayp" :orientation "v" :space-evenly false :spacing 2
+    (label :class "agenda-day" :halign "start" :xalign 0 :text {calendar.day_titles?.[d] ?: d})
+    (box :orientation "v" :space-evenly false :spacing 2
+      (for e in {calendar.day_rows?.[d] ?: "[]"} (agenda-row :e e)))
+    (box :orientation "v" :space-evenly false
+      (for t in {calendar.day_more?.[d] ?: "[]"}
+        (eventbox :cursor "pointer" :timeout "5s" :onclick "xdg-open '${t.url}' >/dev/null 2>&1 &"
+          (label :class "ev-hidden" :halign "start" :xalign 0 :text {t.text}))))
+    (box :orientation "v" :space-evenly false
+      (for t in {arraylength(calendar.day_rows?.[d] ?: "[]") > 0 ? [] : ["Nothing planned"]}
+        (label :class "day-none" :halign "start" :xalign 0 :text t)))))
+
+;; a ▸/▾ toggle for the boolean eww variable named var. Toggling it also folds the section named fold: More events
+;; and the month work as an accordion, so the popup can never outgrow the screen with both open.
+(defwidget disclosure [open var text fold]
+  (button :class "disclosure" :onclick "${EWW_CMD} update ${var}=${!open} ${fold}=false"
     (box :space-evenly false :spacing 10
       (label :class "chev" :text {open ? "▾" : "▸"})
       (label :text text))))

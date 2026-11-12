@@ -120,6 +120,13 @@ button.chip:hover { opacity: 0.85; }
 .cal-day.today .cal-num { color: $accent; font-weight: 700; }
 .ev-dot.cal-dot { min-width: 6px; min-height: 6px; border-radius: 3px; }
 .cal-day.out .cal-dot { opacity: 0.5; }
+// a day is a button: a quiet hover, and the picked day on $base02 (a background only, so no cell changes size)
+.cal-day { border-radius: 10px; }
+.cal-day:hover { background-color: transparentize($base02, 0.5); }
+.cal-day.sel { background-color: $base02; }
+// the picked day's events under the grid (day-panel): set off like the ongoing lines
+.cal-dayp { margin-top: 10px; padding-top: 8px; border-top: 2px solid $base02; }
+.day-none { font-size: 15px; color: $base04; padding: 4px 10px; }
 
 // agents
 .agent { padding: 14px 18px; border-radius: 18px; background-color: transparentize($base02, 0.55); }

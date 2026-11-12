@@ -12,9 +12,10 @@ A source that fails this round keeps its last good events for up to a day; one t
 
 Reads everything on the 6-week grids of the previous, current and next month and writes ~/.cache/eww/calendar.json
 atomically, with
-  events  the events overlapping the next 7 days (the agenda; the polybar pill reads this key too)
-  marks   {"YYYY-MM-DD": ["google", "runna"]} for every grid day with something on it (the grid's dots)
-then pushes the popup view to eww (variable `calendar`).
+  events         the events overlapping the next 7 days (the agenda; the polybar pill reads this key too)
+  marks          {"YYYY-MM-DD": ["google", "runna"]} for every grid day with something on it (the grid's dots)
+  window_events  the events behind those dots, over all three grids (the day picked in the grid lists them)
+then has eww reload the popup view (variable `calendar`).
 `calendar-fetch --view` prints that view from the cache without touching the network (eww polls it each minute).
 Run every 5 minutes by calendar-fetch.timer (~/.config/systemd/user). Settings (environment, optional):
   CALENDAR_RUNNA_MATCH  regex for the Runna calendar title (default: runna)
@@ -91,17 +92,29 @@ def fetch_window(today):
     return grid_start(month_first(today, -1)), grid_start(month_first(today, 1)) + dt.timedelta(weeks=GRID_WEEKS)
 
 
+def dot_day(ev):
+    """The day an event's dot goes on, or None. Long things get no dot: an all-day event of more than one day (a stay)
+    or a timed one of 24 h or more. A shorter timed event marks the day it starts only, also when it runs past
+    midnight."""
+    s, e = dt.datetime.fromisoformat(ev["start"]), dt.datetime.fromisoformat(ev["end"])
+    long = (e.date() - s.date()).days > 1 if ev["allday"] else e - s >= ONE_DAY
+    return None if long else s.date()
+
+
 def day_marks(events, first, end):
-    """{"YYYY-MM-DD": sources} for the grid's dots, days in [first, end) only. Long things get no dot: an all-day
-    event of more than one day (a stay) or a timed one of 24 h or more. A shorter timed event marks the day it
-    starts only, also when it runs past midnight."""
+    """{"YYYY-MM-DD": sources} for the grid's dots, days in [first, end) only (see dot_day)."""
     days = {}
     for ev in events:
-        s, e = dt.datetime.fromisoformat(ev["start"]), dt.datetime.fromisoformat(ev["end"])
-        long = (e.date() - s.date()).days > 1 if ev["allday"] else e - s >= ONE_DAY
-        if not long and first <= s.date() < end:
-            days.setdefault(s.date().isoformat(), set()).add(ev["source"])
+        d = dot_day(ev)
+        if d is not None and first <= d < end:
+            days.setdefault(d.isoformat(), set()).add(ev["source"])
     return {d: [n for n in SOURCES if n in got] for d, got in sorted(days.items())}
+
+
+def window_events(events, first, end):
+    """The events behind day_marks' dots, by start: what a day picked in the grid lists."""
+    return sorted((ev for ev in events if (d := dot_day(ev)) is not None and first <= d < end),
+                  key=lambda x: x["start"])
 
 
 # ---------------- read-only: calendar-auth's own login ----------------
@@ -193,7 +206,13 @@ def fetch_all():
 #   preview  Today and Tomorrow, at most PREVIEW_ROWS rows (a running event always shows)
 #   more     everything else in the 7 days, behind "More events (N)", at most MORE_ROWS rows
 #   ongoing  multi-day all-day events that cover today (a hotel stay), one quiet line each under the list
-#   months   the grids of the previous, current and next month, with each day's dots from the cache's marks
+#   months   the grids of the previous, current and next month, with each day's dots from the cache's marks and
+#            its date; a click on a day shows that day's events under the grid:
+#   day_rows    {"YYYY-MM-DD": rows} for every grid day with a dot, from the cache's window_events; past events
+#               stay (a past day keeps its list), at most DAY_ROWS rows a day
+#   day_more    {"YYYY-MM-DD": [{"text": "+N more in Google Calendar", "url": that day in Google Calendar}]} for a
+#               day with more
+#   day_titles  {"YYYY-MM-DD": "Wednesday 18 November"} for every grid day (the day's heading)
 # Every row has one line (dot, time, title); a click expands its details (full title, times, place, the workout).
 # Optional row parts also come as lists, empty when absent: subs (the "until" line), joins (the inline Join url) and
 # actions (the detail buttons). eww draws them with `for`, not :visible: eww applies :visible when a widget is first
@@ -207,6 +226,7 @@ DETAIL_CHARS = 32       # under a row title (15 px text)
 QUIET_DETAIL_CHARS = 42 # under an ongoing line, which has no time column
 STATUS_CHARS = 50       # the status line (13 px text)
 DETAIL_LINES = 12       # a row's details show at most this many lines (a long Runna workout), the last ending in "…"
+DAY_ROWS = 5            # rows of a day picked in the month grid; the rest is a "+N more in Google Calendar" line
 JOIN_EARLY = dt.timedelta(minutes=15)
 
 
@@ -280,9 +300,39 @@ def month_grid(first, today, marks):
     for w in range(GRID_WEEKS):
         days = [start + dt.timedelta(weeks=w, days=i) for i in range(7)]
         weeks.append({"wk": days[0].isocalendar().week, "days": [
-            {"d": d.day, "in_month": d.month == first.month, "today": d == today,
+            {"d": d.day, "date": d.isoformat(), "in_month": d.month == first.month, "today": d == today,
              "dots": list(marks.get(d.isoformat(), []))} for d in days]})
     return {"title": f"{first:%B %Y}", "weeks": weeks}
+
+
+def day_row(ev, now):
+    """A row for the day picked in the grid: row() with a key of its own (opening it must not also open the same
+    event in the agenda above) and its details wrapped like the agenda's."""
+    r = row(ev, now)
+    r["key"] = hashlib.sha1(f'day|{r["key"]}'.encode()).hexdigest()[:10]
+    r["details"] = clip([wrap(d, DETAIL_CHARS) for d in r["details"]], DETAIL_LINES, DETAIL_CHARS)
+    return r
+
+
+def day_lists(window, now):
+    """day_rows, day_more and day_titles for the three grids' days. Nothing is hidden for being over: unlike the
+    agenda, a past day keeps its events. Rows are ordered like the agenda's: all-day first, then by start."""
+    first, end = fetch_window(now.date())
+    by_day = {}
+    for ev in window:
+        d = dot_day(ev)
+        if d is not None and first <= d < end:
+            by_day.setdefault(d, []).append(ev)
+    rows, more = {}, {}
+    for d, evs in sorted(by_day.items()):
+        got = sorted((day_row(ev, now) for ev in evs), key=lambda r: (not r["allday"], r["start"]))
+        rows[d.isoformat()] = got[:DAY_ROWS]
+        if len(got) > DAY_ROWS:
+            more[d.isoformat()] = [{"text": f"+{len(got) - DAY_ROWS} more in Google Calendar",
+                                    "url": f"https://calendar.google.com/calendar/r/day/{d.year}/{d.month}/{d.day}"}]
+    titles = {(first + dt.timedelta(days=i)).isoformat(): f"{first + dt.timedelta(days=i):%A %-d %B}"
+              for i in range((end - first).days)}
+    return rows, more, titles
 
 
 def view(data, now=None):
@@ -349,29 +399,34 @@ def view(data, now=None):
             r["details"] = clip([wrap(d, DETAIL_CHARS) for d in r["details"]], DETAIL_LINES, DETAIL_CHARS)
     for r in ongoing:
         r["details"] = clip([wrap(d, QUIET_DETAIL_CHARS) for d in r["details"]], DETAIL_LINES, QUIET_DETAIL_CHARS)
+    day_rows, day_more, day_titles = day_lists(data.get("window_events") or [], now)
     return {"connected": data.get("connected", False), "status": wrap(data.get("status", ""), STATUS_CHARS),
             "title": f"{now:%A %-d %B}", "month": f"{now:%B %Y}", "empty": empty, "preview": preview,
             "more": kept, "more_count": total, "more_hidden": hidden,
             "more_tail": [f"+{hidden} more in Google Calendar"] if hidden else [], "ongoing": ongoing,
-            "months": [month_grid(month_first(today, k), today, data.get("marks") or {}) for k in (-1, 0, 1)]}
+            "months": [month_grid(month_first(today, k), today, data.get("marks") or {}) for k in (-1, 0, 1)],
+            "day_rows": day_rows, "day_more": day_more, "day_titles": day_titles}
 
 
 # ---------------- the cache ----------------
 def merge(results, old, now):
     """The new cache from this round's results ({source: events or the error it failed with, "pages": {...}}) and the
     last cache. A source that failed keeps its last good events and dots for up to a day, one not set up has none.
-    `events` keeps what overlaps the next DAYS days; `marks` covers the whole fetch window."""
+    `events` keeps what overlaps the next DAYS days; `marks` and `window_events` cover the whole fetch window (a
+    failed source's window events come from the last cache's window_events, or its agenda events from a cache
+    written before that key existed)."""
     day0 = dt.datetime.combine(now.date(), dt.time(), now.tzinfo)
     agenda_end, (first, end) = day0 + dt.timedelta(days=DAYS), fetch_window(now.date())
     in_agenda = lambda ev: (dt.datetime.fromisoformat(ev["start"]) < agenda_end
                             and dt.datetime.fromisoformat(ev["end"]) > day0)
-    sources, events, stale = {}, [], []
+    sources, events, stale, window = {}, [], [], []
     for name in SOURCES:
         got = results.get(name)
         if isinstance(got, list):
             sources[name] = {"ok": True, "message": f"{sum(map(in_agenda, got))} events", "updated": now.isoformat(),
                              "pages": results.get("pages", {}).get(name, 0)}
             events += got
+            window += got
             continue
         prev = old.get("sources", {}).get(name, {})
         fresh = prev.get("updated") and now - dt.datetime.fromisoformat(prev["updated"]) < dt.timedelta(days=1)
@@ -381,6 +436,8 @@ def merge(results, old, now):
         msg = str(got) if isinstance(got, (LookupError, RuntimeError)) else f"{type(got).__name__}: {got}"
         sources[name] = {"ok": False, "message": msg[:160], "updated": prev.get("updated", "")}
         events += kept
+        if keep:   # a cache from before window_events existed only has the agenda's events
+            window += [ev for ev in old.get("window_events", kept) if ev.get("source") == name]
         log(f"{name}: {msg}" + (f" (kept {len(kept)} cached events)" if kept else ""))
     marks = day_marks(events, first, end)
     for d, got in (old.get("marks") or {}).items():   # the stale source's old dots
@@ -388,15 +445,17 @@ def merge(results, old, now):
             marks[d] = [n for n in SOURCES if n in marks.get(d, []) or (n in stale and n in got)]
     status = "; ".join(f"{n.title()}: {s['message']}" for n, s in sources.items() if not s["ok"])
     return {"sources": sources, "events": sorted(filter(in_agenda, events), key=lambda x: x["start"]),
-            "marks": dict(sorted(marks.items())), "connected": any(s["ok"] for s in sources.values()),
-            "status": status}
+            "marks": dict(sorted(marks.items())), "window_events": window_events(window, first, end),
+            "connected": any(s["ok"] for s in sources.values()), "status": status}
 
 
-def push_view(data):
+def push_view():
+    """Has eww rerun its `calendar` poll (scripts/calendar, which reads the cache just written) instead of passing the
+    view as `eww update calendar=...`: with day_rows the view can outgrow the 128 KiB cap on one command-line
+    argument (a row with a Runna workout is about 900 bytes, so a busy three months passes it)."""
     eww = HOME / ".local/bin/eww"
     if eww.exists() and "CALENDAR_CACHE" not in os.environ:
-        subprocess.run([str(eww), "update", "calendar=" + json.dumps(view(data), ensure_ascii=False)],
-                       capture_output=True, timeout=10)
+        subprocess.run([str(eww), "poll", "calendar"], capture_output=True, timeout=10)
 
 
 def main():
@@ -416,7 +475,7 @@ def main():
     tmp = CACHE.with_suffix(".tmp")
     tmp.write_text(json.dumps(out, ensure_ascii=False))
     os.replace(tmp, CACHE)
-    push_view(out)
+    push_view()
     if "--print" in sys.argv:
         print(json.dumps(out, indent=1, ensure_ascii=False))
 

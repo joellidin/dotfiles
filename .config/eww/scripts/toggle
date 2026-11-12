@@ -32,7 +32,7 @@ heal() {
 close_all() {
   [ -f "$pidfile" ] && kill "$(cat "$pidfile")" 2>/dev/null; rm -f "$pidfile"
   "$eww" close calendar agents control wifi >/dev/null 2>&1
-  "$eww" update calendar_open=false agents_open=false control_open=false wifi_open=false mic_open=false agents_filter=all cal_sel= cal_more=false cal_month=false cal_mon=1 >/dev/null 2>&1
+  "$eww" update calendar_open=false agents_open=false control_open=false wifi_open=false mic_open=false agents_filter=all cal_sel= cal_more=false cal_month=false cal_mon=1 cal_day= >/dev/null 2>&1
   heal
 }
 w=$1
