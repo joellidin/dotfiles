@@ -20,13 +20,13 @@ heal() {
 close_all() {
   [ -f "$pidfile" ] && kill "$(cat "$pidfile")" 2>/dev/null; rm -f "$pidfile"
   "$eww" close calendar agents control wifi >/dev/null 2>&1
-  "$eww" update calendar_open=false agents_open=false control_open=false wifi_open=false mic_open=false agents_filter=all >/dev/null 2>&1
+  "$eww" update calendar_open=false agents_open=false control_open=false wifi_open=false mic_open=false agents_filter=all cal_sel= cal_more=false cal_month=false cal_mon=1 >/dev/null 2>&1
   heal
 }
 w=$1
 case "$w" in
   close-all|outside) close_all; exit 0 ;;
-  calendar) width=440 ;;
+  calendar) width=480 ;;
   agents)   width=1060 ;;
   wifi|control) width=610 ;;
   *) echo "usage: toggle <calendar|agents|control|wifi|close-all>" >&2; exit 2 ;;
@@ -40,4 +40,6 @@ x=$(( ${X:-$((sw / 2))} - width / 2 )); max=$(( sw - 10 - width ))
 "$eww" update "${w}_open=true"
 "$eww" open "$w" --pos "${x}x66" --anchor "top left"
 setsid -f "$dir/outside-watch" "$w" >/dev/null 2>&1
+# calendar: refresh the agenda in the background (the popup shows the cache meanwhile)
+[ "$w" = calendar ] && systemctl --user start --no-block calendar-fetch.service >/dev/null 2>&1
 exit 0

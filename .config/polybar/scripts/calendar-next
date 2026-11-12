@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+"""Next calendar event for the polybar clock pill (module/calnext, every 30 s), from ~/.cache/eww/calendar.json.
+Shows an event that starts within the hour ("Standup in 12m", orange inside 10 minutes) or, failing that, the one
+running now ("Deep work until 15:30", dimmed). Prints nothing otherwise, which hides the segment."""
+import datetime as dt, json, os, subprocess
+cache = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "eww/calendar.json")
+try: events = json.load(open(cache)).get("events", [])
+except Exception: events = []
+now = dt.datetime.now().astimezone()
+def xr(key, fallback):
+    try:
+        for line in subprocess.run(["xrdb", "-query"], capture_output=True, text=True).stdout.splitlines():
+            if line.startswith(key + ":"): return line.split(":", 1)[1].strip()
+    except Exception: pass
+    return fallback
+def short(s, n=28): return s if len(s) <= n else s[:n - 1].rstrip() + "…"
+timed = sorted((e for e in events if not e.get("allday")), key=lambda e: e["start"])
+upcoming = next((e for e in timed if dt.datetime.fromisoformat(e["start"]) > now), None)
+ongoing = next((e for e in timed if dt.datetime.fromisoformat(e["start"]) <= now < dt.datetime.fromisoformat(e["end"])), None)
+mins = None
+if upcoming:
+    mins = int((dt.datetime.fromisoformat(upcoming["start"]) - now).total_seconds() // 60) + 1
+    if mins > 60: upcoming, mins = None, None
+dim, orange, fg = xr("i3wm.base03", "#665c54"), xr("i3wm.base09", "#fe8019"), xr("i3wm.pillfg", "#d5c4a1")
+if upcoming and (mins <= 10 or not ongoing):
+    colour = orange if mins <= 10 else fg
+    print(f"%{{F{dim}}}·%{{F-}}  %{{F{colour}}}{short(upcoming['title'])} in {mins}m%{{F-}}")
+elif ongoing:
+    end = dt.datetime.fromisoformat(ongoing["end"])
+    print(f"%{{F{dim}}}·  {short(ongoing['title'])} until {end:%H:%M}%{{F-}}")
+else:
+    print("")

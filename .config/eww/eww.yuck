@@ -16,16 +16,19 @@
 (defvar wifi_connecting "")
 (defvar wifi_msg "")
 (defvar wifi_msg_kind "")
+(defvar cal_sel "")       ; key of the calendar row whose details are open
+(defvar cal_more false)
+(defvar cal_month false)
+(defvar cal_mon 1)        ; which of calendar.months the grid shows: 0 last, 1 this, 2 next month
 
 (defpoll kbd        :interval "30s" :initial "⌨" "scripts/kbd")
-(defpoll time       :interval "10s" "date '+%H:%M'")
-(defpoll date       :interval "60s" "date '+%A %-d %B %Y'")
 (defpoll battery    :interval "10s" :run-while control_open :initial '{"percent":0,"status":"Unknown","ac":false,"time":"","icon":""}' "scripts/battery")
 (defpoll vol        :interval "2s" :run-while control_open :initial '{"vol":0,"muted":false}' "scripts/volume")
 (defpoll brightness :interval "2s" :run-while control_open :initial 0 "scripts/brightness")
 (defpoll toggles    :interval "2s" :run-while control_open :initial '{"wifi":true,"bt":false,"dnd":false,"dark":true,"profile":"balanced"}' "scripts/toggles")
 (defpoll audio      :interval "3s" :run-while control_open :initial '{"sinks":[],"sources":[],"sink_name":"","source_name":""}' "scripts/audio")
 (defpoll agents     :interval "2s" :run-while agents_open  :initial '[]' "scripts/agents")
+(defpoll calendar   :interval "60s" :run-while calendar_open :initial '{"title":"","month":"","empty":"","preview":[],"more":[],"more_count":0,"more_hidden":0,"more_tail":[],"ongoing":[],"months":[],"connected":false,"status":""}' "scripts/calendar")
 (defpoll wifi       :interval "5s" :run-while wifi_open    :initial '{"enabled":true,"active":"","networks":[]}' "scripts/wifi")
 
 ;; ---------- left bar: workspaces, agents, keyboard flag ----------
@@ -66,16 +69,120 @@
   (image :class "spin" :icon "process-working-symbolic" :icon-size "menu"))
 
 ;; ---------- calendar ----------
+;; The view comes from `calendar-fetch --view` (scripts/calendar), rebuilt each minute: Today and Tomorrow up front,
+;; the rest of the week behind "More events", ongoing stays as quiet lines, the month grid on demand. A click on a
+;; row shows its details. Layout agreed with Codex (~/agents/tasks/calendar-ux).
 (defwidget calendar-w []
-  (box :class "popup calendar" :orientation "v" :space-evenly false :spacing 6
+  (box :class "popup calendar" :orientation "v" :space-evenly false :spacing 12
     (box :class "head" :space-evenly false
-      (label :class "time" :halign "start" :hexpand true :text time)
+      (label :class "cal-title" :halign "start" :hexpand true :xalign 0 :text {calendar.title})
       (close-btn))
-    (label :class "date" :halign "start" :xalign 0 :text date)
-    (calendar :class "cal" :show-week-numbers true)))
+    (label :class "agenda-empty" :visible {calendar.empty != ""} :halign "start" :xalign 0 :text {calendar.empty})
+    (box :orientation "v" :space-evenly false :spacing 12   ; each `for` sits alone in its box: eww 0.6 moves a
+      (for g in {calendar.preview} (agenda-day :g g)))      ; for loop's children to the end of a shared box on update
+    (box :orientation "v" :space-evenly false :visible {calendar.more_count > 0}
+      (disclosure :open cal_more :var "cal_more" :text "More events (${calendar.more_count})")
+      (revealer :reveal cal_more :transition "slidedown" :duration "150ms"
+        (box :class "more" :orientation "v" :space-evenly false :spacing 12
+          (box :orientation "v" :space-evenly false :spacing 12 (for g in {calendar.more} (agenda-day :g g)))
+          ; a list, not :visible: GTK3 drops the resize when a widget appears inside a collapsed revealer
+          (box :orientation "v" :space-evenly false
+            (for t in {calendar.more_tail}
+              (eventbox :cursor "pointer" :timeout "5s"
+                        :onclick "xdg-open https://calendar.google.com/calendar/r/week >/dev/null 2>&1 &"
+                (label :class "ev-hidden" :halign "start" :xalign 0 :text t)))))))
+    (box :class "ongoing" :orientation "v" :space-evenly false :visible {arraylength(calendar.ongoing) > 0}
+      (for e in {calendar.ongoing} (ongoing-row :e e)))
+    (box :class "month" :orientation "v" :space-evenly false
+      (disclosure :open cal_month :var "cal_month" :text {calendar.month})
+      (revealer :reveal cal_month :transition "slidedown" :duration "150ms"
+        (month-grid)))
+    (label :class "agenda-status" :visible {calendar.status != ""} :halign "start" :xalign 0
+           :text {calendar.status})))
 
-(defwindow calendar :monitor 0 :stacking "fg" :windowtype "dialog" :wm-ignore true
-  :geometry (geometry :x "1220px" :y "66px" :width "440px" :anchor "top left")
+;; The month grid (eww's calendar widget cannot mark days): view()'s months holds last, this and next month, cal_mon
+;; picks one, the arrows flip within those three. Every grid has 6 weeks and every dot row a fixed height, so the
+;; popup keeps its size when flipping. It sits in a collapsed revealer, so no :visible in here: the dots come from a
+;; list, each `for` alone in its box, and expressions must work while months is still [] (after a reload).
+(defwidget month-grid []
+  (box :class "cal" :orientation "v" :space-evenly false
+    (box :class "cal-nav" :space-evenly false
+      (button :class "cal-arrow ${cal_mon == 0 ? 'off' : ''}" :onclick "${EWW_CMD} update cal_mon=${cal_mon == 2 ? 1 : 0}" "‹")
+      (label :class "cal-mtitle" :hexpand true :text {calendar.months[cal_mon]?.title ?: ""})
+      (button :class "cal-arrow ${cal_mon == 2 ? 'off' : ''}" :onclick "${EWW_CMD} update cal_mon=${cal_mon == 0 ? 1 : 2}" "›"))
+    (box :class "cal-head" :space-evenly false
+      (label :class "cal-wk" :text "Wk")
+      (box :hexpand true :homogeneous true
+        (label :text "Mo") (label :text "Tu") (label :text "We") (label :text "Th")
+        (label :text "Fr") (label :text "Sa") (label :text "Su")))
+    (box :orientation "v" :space-evenly false
+      (for w in {calendar.months[cal_mon]?.weeks ?: "[]"}
+        (box :class "cal-week" :space-evenly false
+          (label :class "cal-wk" :text {w.wk})
+          (box :hexpand true :homogeneous true
+            (for x in {w.days} (cal-day :x x))))))))
+
+;; a day number with one dot per source that has something that day (google, runna)
+(defwidget cal-day [x]
+  (box :class "cal-day ${x.in_month ? '' : 'out'} ${x.today ? 'today' : ''}" :orientation "v" :space-evenly false
+    (label :class "cal-num" :text {x.d})
+    (box :class "cal-dots" :halign "center" :height 7 :space-evenly false :spacing 4
+      (for s in {x.dots} (box :class "ev-dot ${s} cal-dot" :valign "center" :width 6 :height 6)))))
+
+;; a ▸/▾ toggle for the boolean eww variable named var
+(defwidget disclosure [open var text]
+  (button :class "disclosure" :onclick "${EWW_CMD} update ${var}=${!open}"
+    (box :space-evenly false :spacing 10
+      (label :class "chev" :text {open ? "▾" : "▸"})
+      (label :text text))))
+
+(defwidget agenda-day [g]
+  (box :orientation "v" :space-evenly false :spacing 2
+    (label :class "agenda-day" :halign "start" :xalign 0 :text {g.label})
+    (box :orientation "v" :space-evenly false :spacing 2 (for e in {g.events} (agenda-row :e e)))))
+
+;; one line: source dot, time ("Now" while running, "Run" for a Runna day), title, Join from 15 min before.
+;; Rows can sit in a collapsed revealer (More events), where eww never applies :visible (it does that on a widget's
+;; first map), so the optional parts come from lists (subs, joins, actions), each `for` alone in its box.
+(defwidget agenda-row [e]
+  (box :class "ev ${e.now ? 'now' : ''} ${cal_sel == e.key ? 'open' : ''}" :orientation "v" :space-evenly false
+    (eventbox :cursor "pointer" :onclick "${EWW_CMD} update cal_sel=${cal_sel == e.key ? '' : e.key}"
+      (box :class "ev-line" :space-evenly false :spacing 12
+        (box :class "ev-dot ${e.source}" :valign "center" :width 10 :height 10)
+        (label :class "ev-time" :xalign 0 :text {e.time})
+        (box :hexpand true :space-evenly false   ; no spacing: the Join box is empty on most rows (.ev-join has the gap)
+          (box :orientation "v" :hexpand true :space-evenly false
+            (label :class "ev-title" :halign "start" :xalign 0 :limit-width {e.join != "" ? 18 : 26} :text {e.title})
+            (box :orientation "v" :space-evenly false
+              (for s in {e.subs} (label :class "ev-sub" :halign "start" :xalign 0 :text s))))
+          (box :space-evenly false
+            (for j in {e.joins}
+              (button :class "ev-join" :timeout "5s" :valign "center"
+                      :onclick "xdg-open '${j}' >/dev/null 2>&1 &" "Join"))))))
+    (ev-details :e e)))
+
+;; a multi-day event covering today (a hotel stay): quiet, no time column
+(defwidget ongoing-row [e]
+  (box :class "ev quiet ${cal_sel == e.key ? 'open' : ''}" :orientation "v" :space-evenly false
+    (eventbox :cursor "pointer" :onclick "${EWW_CMD} update cal_sel=${cal_sel == e.key ? '' : e.key}"
+      (box :class "ev-line" :space-evenly false :spacing 12
+        (box :class "ev-dot ${e.source}" :valign "center" :width 10 :height 10)
+        (label :class "ev-title" :halign "start" :hexpand true :xalign 0 :limit-width 20 :text {e.title})
+        (label :class "ev-through" :halign "end" :text {e.sub})))
+    (ev-details :e e)))
+
+(defwidget ev-details [e]
+  (revealer :reveal {cal_sel == e.key} :transition "slidedown" :duration "150ms"
+    (box :class "ev-details" :orientation "v" :space-evenly false :spacing 4
+      (box :orientation "v" :space-evenly false :spacing 4
+        (for d in {e.details} (label :class "ev-detail" :halign "start" :xalign 0 :text d)))
+      (box :class "ev-actions" :space-evenly false :spacing 8 :halign "start"   ; Open in Calendar, Join
+        (for a in {e.actions}
+          (button :class {a.join ? "act join" : "act"} :timeout "5s"
+                  :onclick "xdg-open '${a.url}' >/dev/null 2>&1 &" {a.label}))))))
+
+(defwindow calendar :monitor 0 :stacking "fg" :windowtype "dialog" :wm-ignore true :resizable false
+  :geometry (geometry :x "1180px" :y "66px" :width "480px" :anchor "top left")
   (calendar-w))
 
 ;; ---------- herdr agents ----------

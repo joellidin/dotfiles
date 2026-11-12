@@ -1,0 +1,5 @@
+#!/bin/sh
+# The calendar popup's view, rebuilt from the cache (written by ~/.local/bin/calendar-fetch every 5 minutes) each
+# time eww polls, so "Now", Join and finished events stay right to the minute. No network.
+"$HOME/.local/bin/calendar-fetch" --view 2>/dev/null ||
+  echo '{"title":"","month":"","empty":"Calendar view failed: run calendar-fetch --view","preview":[],"more":[],"more_count":0,"more_hidden":0,"more_tail":[],"ongoing":[],"months":[],"connected":false,"status":""}'
