@@ -347,12 +347,12 @@ return {
             :lower():gsub("[^%w]+", "-"):gsub("^-+|-+$", "")
         end
 
-        -- Default to tmux session name in kebab-case (strip branch suffix for worktree sessions)
-        local session = vim.fn.system("tmux display-message -p '#S'"):gsub("%s+", "")
+        -- Default to the herdr workspace label in kebab-case (strip branch suffix for worktree workspaces)
+        local label = require("machina.herdr").current_label():gsub("%s+", "")
         local default = ""
-        if session ~= "" and vim.v.shell_error == 0 then
-          local kebab = to_kebab(session)
-          -- Check if this looks like a worktree session (project-branch); match against existing projects
+        if label ~= "" then
+          local kebab = to_kebab(label)
+          -- Check if this looks like a worktree workspace (project-branch); match against existing projects
           local projects = vim.fn.glob(vim.fn.expand("~/notes") .. "/projects/*/", false, true)
           for _, dir in ipairs(projects) do
             local name = dir:match("projects/(.+)/$")
@@ -391,24 +391,23 @@ return {
         local vault = vim.fn.expand("~/notes")
         local function normalize(s) return s:lower():gsub("[^%w]", "") end
 
-        -- Try tmux session name first
-        local session = vim.fn.system("tmux display-message -p '#S'"):gsub("%s+", "")
-        local norm_session = normalize(session)
+        -- Try the herdr workspace label first
+        local norm_label = normalize(require("machina.herdr").current_label())
 
-        -- Search project folders for a normalized match (exact, then prefix for worktree sessions)
+        -- Search project folders for a normalized match (exact, then prefix for worktree workspaces)
         local projects = vim.fn.glob(vault .. "/projects/*/", false, true)
         local best_match, best_len = nil, 0
         for _, dir in ipairs(projects) do
           local name = dir:match("projects/(.+)/$")
           if name then
             local norm_name = normalize(name)
-            if norm_name == norm_session then
-              -- Exact match (non-bare repo session)
+            if norm_name == norm_label then
+              -- Exact match (non-bare repo workspace)
               vim.cmd("edit " .. dir .. "todos.md")
               return
             end
-            -- Prefix match for worktree sessions (e.g., session "templar-main" matches project "templar")
-            if #norm_name > best_len and norm_session:sub(1, #norm_name) == norm_name then
+            -- Prefix match for worktree workspaces (e.g., label "templar-main" matches project "templar")
+            if #norm_name > best_len and norm_label:sub(1, #norm_name) == norm_name then
               best_match = dir
               best_len = #norm_name
             end

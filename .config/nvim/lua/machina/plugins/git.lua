@@ -80,39 +80,27 @@ return {
     dependencies = { "nvim-lua/plenary.nvim" },
     event = "VeryLazy",
     config = function()
-      -- Find the bare repo root by walking up from a path looking for .bare/
-      local function find_bare_root(path)
-        local dir = path
-        while dir and dir ~= "/" do
-          if vim.fn.isdirectory(dir .. "/.bare") == 1 then return dir end
-          dir = vim.fn.fnamemodify(dir, ":h")
-        end
-        return nil
-      end
-
-      -- Compute tmux session name matching sessionizer convention
-      local function session_name_for(path)
-        local bare_root = find_bare_root(path)
-        if bare_root then
-          local project = vim.fn.fnamemodify(bare_root, ":t"):gsub("%.", "_")
-          -- Worktree dir relative to bare root, with slashes and dots as underscores
-          local rel = path:sub(#bare_root + 2):gsub("/", "-"):gsub("%.", "_")
-          return project .. "-" .. rel, project
-        end
-        return vim.fn.fnamemodify(path, ":t"):gsub("%.", "_"), nil
-      end
+      local herdr = require("machina.herdr")
 
       require("worktrees").setup {
         swap_current_buffer = false,
         hooks = {
           on_switch = function(prev_path, new_path)
-            -- Restore nvim state (plugin changed cwd, we just want the tmux switch)
+            -- Restore nvim state (plugin changed cwd, we just want the herdr switch)
             vim.cmd("cd " .. vim.fn.fnameescape(prev_path))
-            if not os.getenv("TMUX") then return end
-            local name = session_name_for(new_path)
-            local esc = vim.fn.shellescape
-            vim.fn.system("tmux has-session -t=" .. esc(name) .. " 2>/dev/null || tmux new-session -ds " .. esc(name) .. " -c " .. esc(new_path))
-            vim.fn.jobstart("tmux switch-client -t " .. esc(name), { detach = true })
+            if not herdr.in_herdr() then return end
+            -- Focus the worktree's workspace or create it; the sessionizer owns the naming
+            if vim.fn.executable("herdr-sessionizer") == 0 then
+              vim.notify("herdr-sessionizer not found", vim.log.levels.WARN, { title = "Worktree" })
+              return
+            end
+            vim.system({ "herdr-sessionizer", new_path }, { detach = true, stdout = false }, function(res)
+              if res.code ~= 0 then
+                vim.schedule(function()
+                  vim.notify("herdr-sessionizer failed: " .. vim.trim(res.stderr or ""), vim.log.levels.WARN, { title = "Worktree" })
+                end)
+              end
+            end)
           end,
           on_add = function(_, path)
             -- Run the same post-create steps as Worktrunk hooks
@@ -130,15 +118,24 @@ return {
           end,
           on_remove = function(path)
             if vim.fn.executable("wt") == 1 then
-              vim.fn.system("wt remove -y " .. vim.fn.shellescape(vim.fn.fnamemodify(path, ":t")))
+              vim.system({ "wt", "remove", "-y", vim.fn.fnamemodify(path, ":t") }):wait()
             end
-            if os.getenv("TMUX") then
-              local name, project = session_name_for(path)
-              local main_session = project and (project .. "-main") or nil
-              if main_session and name ~= main_session then
-                vim.fn.system("tmux switch-client -t=" .. vim.fn.shellescape(main_session) .. " 2>/dev/null")
-              end
-              vim.fn.system("tmux kill-session -t=" .. vim.fn.shellescape(name) .. " 2>/dev/null")
+            if not herdr.in_herdr() then return end
+            -- Move to <project>-main unless that is the one going away
+            local name, project = herdr.workspace_name(path)
+            local list = herdr.workspaces()
+            local main_label = project and (project .. "-main")
+            if main_label and name ~= main_label then
+              local main = herdr.find_by_label(main_label, list)[1]
+              if main then herdr.focus(main.workspace_id) end
+            end
+            -- Close the worktree's workspace, as tmux kill-session did. Exact label match only.
+            local matches = herdr.find_by_label(name, list)
+            if #matches == 1 then
+              herdr.close(matches[1].workspace_id)
+            elseif #matches > 1 then
+              vim.notify(("%d herdr workspaces are labelled %s; closing none"):format(#matches, name),
+                vim.log.levels.WARN, { title = "Worktree" })
             end
           end,
         },
