@@ -14,10 +14,9 @@ export BROWSER="zen"
 
 # Other program settings
 export SUDO_ASKPASS="$HOME/.local/bin/dmenupass"
-# ssh, ssh-add and the agent ask for key passphrases, YubiKey PINs and confirmations on the same rofi card,
-# also from a terminal (prefer: only while there is a display)
+# ssh and ssh-add ask for key passphrases and YubiKey PINs on the rofi card when there is no terminal (i3's login
+# ssh-add, git from an editor); from a terminal they ask in the terminal (SSH_ASKPASS_REQUIRE unset, Joel's choice)
 export SSH_ASKPASS="$HOME/.local/bin/ssh-askpass-rofi"
-export SSH_ASKPASS_REQUIRE=prefer
 # Use nvim as man pager
 export MANPAGER="nvim +Man!"
 export ZK_NOTEBOOK_DIR=$HOME/notes

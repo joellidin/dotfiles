@@ -77,7 +77,9 @@ def describe(prompt):
 
 def rofi(args, rows=None):
     """Run rofi; return (exit code, stdout without its trailing newline)."""
-    cmd = ["rofi", "-dmenu", "-theme", THEME, "-pid", PIDFILE] + args
+    # -no-click-to-exit: Joel wants the SSH card to stay open on a click outside it. config.rasi keeps
+    # click-to-exit: true so menus (and the sudo/gpg cards) still close that way.
+    cmd = ["rofi", "-dmenu", "-theme", THEME, "-pid", PIDFILE, "-no-click-to-exit"] + args
     r = subprocess.run(cmd, input=rows if rows is not None else "", capture_output=True, text=True)
     return r.returncode, r.stdout[:-1] if r.stdout.endswith("\n") else r.stdout
 
