@@ -14,6 +14,12 @@
 # switched a remote pane within 3 s, 2026-11-12), so each enabled machine gets the same nudge
 # through `herdr --machine <id>`.
 #
+# A remote server can also get the new host palette late: after the 17:31 dark switch on 2026-11-12
+# three lidin Claude panes stayed light, and a rerun of the hook 13 minutes later switched them all
+# (likely cause; herdr logs no palette timing). So once a machine answers, its Claude panes are also
+# nudged at about +30, +60 and +120 s, with a fresh agent list each time as panes come and go. Each
+# remote send is logged to ~/.cache/theme-mode/herdr-claude.log, started afresh on each switch.
+#
 # Remote calls stay passive. `herdr --machine` runs over herdr's shared OpenSSH connection, and
 # with no live master it opens a new one and authenticates (lidin uses a YubiKey: touch requests
 # and agent passphrase popups after a resume, 2026-11-12). Two guards:
@@ -39,6 +45,12 @@ herdr_bin=$(command -v herdr 2>/dev/null || echo "$HOME/.local/bin/herdr")
 command -v jq >/dev/null 2>&1 || exit 0
 case "$1" in dark) code=1 ;; light) code=2 ;; *) exit 0 ;; esac
 report=$(printf '\033[?997;%sn' "$code")
+start=$(date +%s)
+late="30 60 120"  # later remote passes, in s after the switch
+
+# Fresh log for each switch. printf, not `: >`: a failed redirect on `:` exits dash.
+log=$HOME/.cache/theme-mode/herdr-claude.log
+{ mkdir -p "${log%/*}" && printf '' >"$log"; } 2>/dev/null
 
 have() { command -v "$1" >/dev/null 2>&1; }
 
@@ -78,37 +90,60 @@ r() {
 claude_panes() { jq -r '.result.agents[]? | select(.agent == "claude") | .pane_id'; }
 
 # send CMD...: send the report to each pane id read from stdin, with `CMD... pane send-text`.
+# Remote sends (CMD is r) are logged.
 send() {
   while IFS= read -r pane; do
     "$@" pane send-text "$pane" "$report" >/dev/null 2>&1
-    [ $? -lt 124 ] || break  # timed out, killed or link gone: skip the machine's other panes
+    rc=$?
+    [ "$1" = r ] && note "$pane" "$rc"
+    [ "$rc" -lt 124 ] || break  # timed out, killed or link gone: skip the machine's other panes
   done
 }
 
-# remote ID TARGET: from +5 s, every 5 s, ask one machine for its agents until it is linked and
-# answers (giving up 3 minutes after the switch), then report to its Claude panes twice, 7 s apart,
-# since the remote server may refresh its colours just after the link comes back.
+# note PANE RC: log one remote send: time, s since the switch, machine label, pane, pass, report
+# as 997;N (never the raw bytes), exit status. remote() sets $label and $pass.
+note() {
+  printf '%s +%ss %s %s %s 997;%s rc=%s\n' "$(date +%FT%T)" "$(($(date +%s) - start))" \
+    "$label" "$1" "$pass" "$code" "$2" >>"$log"
+}
+
+# again ID TARGET: read the machine's agent list anew and report to its Claude panes.
+again() {
+  out=$(r "$1" "$2" agent list 2>/dev/null) && printf '%s\n' "$out" | claude_panes | send r "$1" "$2"
+}
+
+# remote ID TARGET LABEL: from +5 s, every 5 s, ask one machine for its agents until it is linked
+# and answers (giving up 3 minutes after the switch). Then report to its Claude panes twice, 7 s
+# apart, since the remote server may refresh its colours just after the link comes back, and again
+# at each time in $late not yet past, since it may also get the new palette late.
 remote() {
-  give_up=$(($(date +%s) + 180))
+  label=${3:-$1}
   sleep 5
   until out=$(r "$1" "$2" agent list 2>/dev/null) &&
       printf '%s\n' "$out" | jq -e '.result.agents | arrays' >/dev/null 2>&1; do
-    [ "$(date +%s)" -lt "$give_up" ] || return
+    [ "$(date +%s)" -lt $((start + 180)) ] || return
     sleep 5
   done
-  printf '%s\n' "$out" | claude_panes | send r "$1" "$2"
+  pass=first; printf '%s\n' "$out" | claude_panes | send r "$1" "$2"
   sleep 7
-  printf '%s\n' "$out" | claude_panes | send r "$1" "$2"
+  pass=again; again "$1" "$2"
+  for at in $late; do
+    left=$((start + at - $(date +%s)))
+    [ "$left" -gt 0 ] || continue  # already past: the machine answered late
+    sleep "$left"
+    pass=+$at; again "$1" "$2"
+  done
 }
 
 # Detach: theme-mode runs hooks sequentially and must not wait for us.
 (
   machines=$(have timeout && have pgrep && have ssh &&
     timeout -k 2 20 "$herdr_bin" machine list --json 2>/dev/null \
-      | jq -r '.[]? | select(.enabled == true) | "\(.id) \(.target)"')
-  while read -r id target; do
+      | jq -r '.[]? | select(.enabled == true) |
+          "\(.id) \(.target) \(.label // "" | tostring | gsub("\\s+"; "_"))"')
+  while read -r id target label; do
     [ -n "$target" ] || continue
-    remote "$id" "$target" &
+    remote "$id" "$target" "$label" &
   done <<EOF
 $machines
 EOF
