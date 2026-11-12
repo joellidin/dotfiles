@@ -3,15 +3,31 @@
 # This is bound to Shift+PrintScreen by default, requires maim. It lets you
 # choose the kind of screenshot to take, including copying the image or even
 # highlighting an area to copy.
+# The menu (~/.config/rofi/shots.rasi) is the picture menu of $mod+F10: it hangs from the top centre of the screen.
 # Pick with the number keys 1-6 (instant), by typing to filter, or with the mouse.
 
 folder=$HOME/Pictures
 stamp() { date '+%y%m%d-%H%M-%S'; }
-choice=$(printf '%s\n' "a selected area" "current window" "full screen" \
-    "a selected area (copy)" "current window (copy)" "full screen (copy)" |
-  rofi -dmenu -i -no-custom -format i -p "Screenshot" \
-    -kb-select-1 1 -kb-select-2 2 -kb-select-3 3 -kb-select-4 4 -kb-select-5 5 -kb-select-6 6 \
-    -theme-str 'element { children: [ element-index, element-text ]; } element-index { text-color: inherit; }') || exit 1
+
+dim () { printf '<span alpha="50%%">%s</span>' "$1"; }    # quiet secondary text in a row
+# icons in the fixed-width symbols font, so every label starts at the same x
+ico () { printf '<span font="Symbols Nerd Font Mono 17">%s</span>' "$1"; }
+# row N GLYPH LABEL [TAG]: a choice row with its number key and an optional quiet tag
+row () { printf '%s   %s   %s%s\n' "$(dim "$1")" "$(ico "$2")" "$3" "${4:+  $(dim "$4")}"; }
+
+# -format i prints the chosen row's 0-based index in the full list, whatever was typed to filter it
+choice=$(
+  {
+    row 1 󰩭 "Selected area"
+    row 2 󰘔 "Current window"
+    row 3 󰍹 "Full screen"
+    row 4 󰩭 "Selected area" copy
+    row 5 󰘔 "Current window" copy
+    row 6 󰍹 "Full screen" copy
+  } | rofi -dmenu -theme "$HOME/.config/rofi/shots.rasi" -p "󰄀  Screenshot" -markup-rows -format i -no-custom -i \
+        -kb-select-1 1 -kb-select-2 2 -kb-select-3 3 -kb-select-4 4 -kb-select-5 5 -kb-select-6 6 \
+        -theme-str 'textbox-help { str: "Press 1 to 6 to pick  ·  Esc to cancel"; }'
+) || exit 1
 case "$choice" in
 	0) maim -s "$folder/pic-selected-$(stamp).png" ;;
 	1) maim -i "$(xdotool getactivewindow)" "$folder/pic-window-$(stamp).png" ;;

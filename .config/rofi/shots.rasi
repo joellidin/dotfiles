@@ -1,0 +1,7 @@
+/* Screenshot menu (~/.local/bin/maimpick, Shift+Print): the picture menu from banner-menu.rasi with the telescope
+   picture: a 1432 x 340 crop (2x the banner) of the old adi1090x telescope image, placed so no star sits behind the
+   title pill. */
+@import "banner-menu.rasi"
+banner {
+  background-image: url("~/.config/rofi/images/shots.jpg", width);
+}
