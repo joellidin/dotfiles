@@ -1,0 +1,180 @@
+#!/usr/bin/python3 -I
+"""ssh-askpass-rofi: OpenSSH's askpass as the rofi password card (~/.config/rofi/password.rasi), the same card as the
+gpg PIN prompt (pinentry-rofi) and sudo (dmenupass).
+
+ssh, ssh-add and ssh-agent run $SSH_ASKPASS with the prompt as the only argument, and say what they want in
+$SSH_ASKPASS_PROMPT:
+  (unset)   a secret: key passphrase, YubiKey PIN, host password. Print it and exit 0; exit 1 = cancelled.
+            ssh also asks "Are you sure you want to continue connecting (yes/no/[fingerprint])?" this way:
+            that one is a Yes/No choice that prints "yes" or "no".
+  confirm   allow one use of an agent key added with `ssh-add -c`: exit 0 = allow, 1 = deny.
+  none      a notice only ("Confirm user presence for key ED25519-SK ...": touch the YubiKey). ssh kills the
+            askpass with SIGTERM once the key was touched, so show a notification and close it then.
+Set in ~/.config/shell/profile (SSH_ASKPASS, SSH_ASKPASS_REQUIRE=prefer) and for the agent in
+~/.config/systemd/user/ssh-agent.service.d/askpass.conf.
+Test: sh ~/.claude/plans/test-ssh-askpass-rofi.sh
+"""
+import html
+import os
+import re
+import signal
+import subprocess
+import sys
+import time
+
+THEME = os.path.expanduser("~/.config/rofi/password.rasi")
+# a separate pid file, so an open rofi menu does not stop this prompt from starting
+PIDFILE = os.path.join(os.environ.get("XDG_RUNTIME_DIR") or "/tmp", "rofi-ssh-askpass.pid")
+CHOICE = "mainbox { children: [ badge-row, title-row, message, listview ]; } listview { lines: %d; }"
+EMBLEM = 'textbox-emblem { str: "%s"; }'
+
+
+def need_display():
+    """ssh-agent runs as a systemd service that may have started before the X session exported DISPLAY: take it from
+    the user manager's environment then (like theme-mode). False if there is no display at all."""
+    if os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"):
+        return True
+    try:
+        env = subprocess.run(["systemctl", "--user", "show-environment"], capture_output=True, text=True,
+                             timeout=5).stdout
+    except (OSError, subprocess.SubprocessError):
+        return False
+    for line in env.splitlines():
+        key, _, value = line.partition("=")
+        if key in ("DISPLAY", "XAUTHORITY", "WAYLAND_DISPLAY", "DBUS_SESSION_BUS_ADDRESS") and value \
+                and not os.environ.get(key):
+            os.environ[key] = value
+    return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+
+
+def short(path):
+    """~/.ssh/id_ed25519_sk -> id_ed25519_sk; other paths with ~ for home."""
+    home = os.path.expanduser("~")
+    if path.startswith(home + "/.ssh/"):
+        return path[len(home) + 6:]
+    return "~" + path[len(home):] if path.startswith(home + "/") else path
+
+
+def describe(prompt):
+    """Turn ssh's prompt into (heading, detail lines, error line, emblem glyph)."""
+    text = prompt.strip().rstrip(":").strip()
+    m = re.match(r"^Bad passphrase, try again for (.+)$", text)
+    if m:
+        return "SSH key passphrase", [short(m.group(1).strip("'"))], "Wrong passphrase, try again", "󰌋"
+    m = re.match(r"^Enter passphrase for (?:key )?'?(.+?)'?( \(will confirm each use\))?$", text)
+    if m:
+        detail = [short(m.group(1))] + (["will confirm each use"] if m.group(2) else [])
+        return "SSH key passphrase", detail, None, "󰌋"
+    m = re.match(r"^Enter PIN for (\S+) key (.+)$", text)
+    if m:
+        return "YubiKey PIN", [m.group(1) + " " + short(m.group(2).strip("'"))], None, "󰌋"
+    m = re.match(r"^\(?(\S+@\S+?)\)?'?s? [Pp]assword$", text) or re.match(r"^\((\S+@\S+)\) Password$", text)
+    if m:
+        return "SSH password", [m.group(1)], None, "󰌋"
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    return lines[0], lines[1:], None, "󰌋"
+
+
+def rofi(args, rows=None):
+    """Run rofi; return (exit code, stdout without its trailing newline)."""
+    cmd = ["rofi", "-dmenu", "-theme", THEME, "-pid", PIDFILE] + args
+    r = subprocess.run(cmd, input=rows if rows is not None else "", capture_output=True, text=True)
+    return r.returncode, r.stdout[:-1] if r.stdout.endswith("\n") else r.stdout
+
+
+def mesg(detail, error=None):
+    """-mesg is Pango markup: an error line in bold, then the details, all escaped."""
+    parts = (["<b>%s</b>" % html.escape(error)] if error else []) + [html.escape(d) for d in detail]
+    return "\n".join(parts)
+
+
+def ask_secret(prompt):
+    heading, detail, error, glyph = describe(prompt)
+    args = ["-password", "-p", heading, "-theme-str", EMBLEM % glyph]
+    if detail or error:
+        args += ["-mesg", mesg(detail, error)]
+    rc, out = rofi(args)
+    if rc != 0:
+        return 1
+    print(out)
+    return 0
+
+
+def ask_choice(heading, detail, rows, hint):
+    """Show rows (labels) on the card; return the chosen index, or None on Escape."""
+    args = ["-p", heading, "-format", "i", "-no-custom", "-markup-rows",
+            "-theme-str", CHOICE % len(rows), "-theme-str", EMBLEM % "󰣀",
+            "-theme-str", 'textbox-help { str: "%s"; }' % hint]
+    if detail:
+        args += ["-mesg", mesg(detail)]
+    rc, out = rofi(args, "\n".join(rows) + "\n")
+    return int(out) if rc == 0 and out.isdigit() else None
+
+
+def host_key(prompt):
+    """"Are you sure you want to continue connecting (yes/no/[fingerprint])?" as a Yes/No choice."""
+    lines = [ln.strip() for ln in prompt.strip().splitlines() if ln.strip()]
+    detail = [ln for ln in lines if not ln.startswith("Are you sure")]
+    i = ask_choice("Unknown SSH host", detail, ["Yes, trust this host and connect", "No"],
+                   "Enter to choose · Esc to cancel")
+    if i is None:
+        return 1
+    print("yes" if i == 0 else "no")
+    return 0
+
+
+def confirm(prompt):
+    lines = [ln.strip() for ln in prompt.strip().splitlines() if ln.strip()]
+    m = re.match(r"^Allow use of key (.+?)\?$", lines[0]) if lines else None
+    heading = "Allow SSH key use?" if m else (lines[0] if lines else "Allow?")
+    detail = ([short(m.group(1))] if m else []) + lines[1:]
+    i = ask_choice(heading, detail, ["Allow", "Deny"], "Enter to choose · Esc to deny")
+    return 0 if i == 0 else 1
+
+
+def notice(prompt):
+    """Touch request: a notification until ssh kills us (SIGTERM), then close it. Gives up after 2 minutes."""
+    lines = [ln.strip() for ln in prompt.strip().splitlines() if ln.strip()]
+    body = lines[0] if lines else prompt
+    m = re.match(r"^Confirm user presence for key (\S+) (\S+)$", body)
+    if m:
+        body = "SSH key %s %s" % (m.group(1), m.group(2)[:20] + ("…" if len(m.group(2)) > 20 else ""))
+    try:
+        nid = subprocess.run(["notify-send", "-p", "-u", "critical", "-a", "ssh", "Touch your YubiKey", body],
+                             capture_output=True, text=True, timeout=5).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        nid = ""
+
+    def close(*_):
+        if nid.isdigit():
+            subprocess.run(["gdbus", "call", "--session", "--dest", "org.freedesktop.Notifications",
+                            "--object-path", "/org/freedesktop/Notifications",
+                            "--method", "org.freedesktop.Notifications.CloseNotification", nid],
+                           capture_output=True, timeout=5)
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, close)
+    signal.signal(signal.SIGINT, close)
+    signal.signal(signal.SIGHUP, close)
+    deadline = time.monotonic() + 120
+    while time.monotonic() < deadline:
+        time.sleep(0.5)
+    close()
+
+
+def main():
+    prompt = sys.argv[1] if len(sys.argv) > 1 else "Passphrase"
+    kind = os.environ.get("SSH_ASKPASS_PROMPT", "")
+    if not need_display():
+        return 1
+    if kind == "none":
+        return notice(prompt)
+    if kind == "confirm":
+        return confirm(prompt)
+    if re.search(r"\(yes/no(/\[fingerprint\])?\)\?\s*$", prompt):
+        return host_key(prompt)
+    return ask_secret(prompt)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

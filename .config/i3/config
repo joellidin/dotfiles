@@ -356,6 +356,9 @@ exec --no-startup-id $HOME/.local/bin/eww daemon
 # close the eww left bar while a fullscreen window is visible (override-redirect, so i3 cannot cover it).
 # exec, not exec_always: it is single-instance and reconnects by itself after an i3 restart
 exec --no-startup-id $HOME/.local/bin/bar-control watch
+# YubiKey SSH keys into the OpenSSH agent once per login (passphrase on the rofi card), so herdr's background
+# connections to lidin can authenticate; one prompt if both keys share a passphrase
+exec --no-startup-id ssh-add $HOME/.ssh/id_ed25519_sk $HOME/.ssh/id_ed25519_sk_backup
 # new windows split the focused one along its longer side, a dwindle spiral (~/.config/systemd/user/autotiling.service)
 exec --no-startup-id systemctl --user start autotiling.service
 
