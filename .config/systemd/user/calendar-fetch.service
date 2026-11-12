@@ -1,0 +1,9 @@
+[Unit]
+Description=Fetch calendar events for the eww agenda and the polybar next-event pill
+Documentation=file://%h/.local/bin/calendar-fetch
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/uv run --quiet --script %h/.local/bin/calendar-fetch
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+Nice=10

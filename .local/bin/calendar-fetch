@@ -1,0 +1,425 @@
+#!/usr/bin/env -S uv run --quiet --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["google-auth>=2.30", "requests>=2.31"]
+# ///
+"""Fetch calendar events for the eww agenda, its month grid and the polybar next-event pill.
+
+Two Google calendars: the primary one and the Runna training plan, subscribed to inside Google Calendar (Other
+calendars, From URL), matched by a title containing "runna". One read-only login (scope calendar.readonly) covers
+both; set it up once with `calendar-auth`, which keeps the token in ~/.local/share/calendar-fetch/token.json.
+A source that fails this round keeps its last good events for up to a day; one that is not set up shows nothing.
+
+Reads everything on the 6-week grids of the previous, current and next month and writes ~/.cache/eww/calendar.json
+atomically, with
+  events  the events overlapping the next 7 days (the agenda; the polybar pill reads this key too)
+  marks   {"YYYY-MM-DD": ["google", "runna"]} for every grid day with something on it (the grid's dots)
+then pushes the popup view to eww (variable `calendar`).
+`calendar-fetch --view` prints that view from the cache without touching the network (eww polls it each minute).
+Run every 5 minutes by calendar-fetch.timer (~/.config/systemd/user). Settings (environment, optional):
+  CALENDAR_RUNNA_MATCH  regex for the Runna calendar title (default: runna)
+  CALENDAR_CACHE        output path (default: ~/.cache/eww/calendar.json); when set, eww is not updated
+"""
+import datetime as dt
+import hashlib
+import html
+import json
+import os
+import re
+import subprocess
+import sys
+import textwrap
+import urllib.parse
+from pathlib import Path
+
+HOME = Path.home()
+CACHE = Path(os.environ.get("CALENDAR_CACHE", HOME / ".cache/eww/calendar.json"))
+TOKEN = HOME / ".local/share/calendar-fetch/token.json"
+SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
+RUNNA = re.compile(os.environ.get("CALENDAR_RUNNA_MATCH", "runna"), re.I)
+SOURCES = ("google", "runna")   # also the order of a day's dots
+DAYS = 7                        # the agenda
+ONE_DAY = dt.timedelta(days=1)
+GRID_WEEKS = 6                  # every month grid, so the popup keeps its height when flipping months
+PAGE_SIZE = 100                 # events per API page; more pages follow nextPageToken
+MAX_PAGES = 50
+NOTE_LINES, NOTE_CHARS = 12, 600   # a Runna workout is kept whole up to this
+NOW = dt.datetime.now().astimezone()
+TZ = NOW.tzinfo
+TODAY = NOW.date()
+API = "https://www.googleapis.com/calendar/v3"
+
+
+def log(msg):
+    print(f"calendar-fetch: {msg}", file=sys.stderr)
+
+
+def event(source, eid, title, start, end, allday, location, link, join, note):
+    return {"source": source, "id": eid, "title": (title or "").strip() or "(no title)", "start": start.isoformat(),
+            "end": end.isoformat(), "allday": allday, "location": (location or "").strip(), "link": link or "",
+            "join": join or "", "note": note or ""}
+
+
+def workout_note(text):
+    """A Runna description as plain lines, in order: HTML breaks become newlines and tags go, as do blank lines, URLs
+    and the "View in the Runna app" line (there is no Runna app on the computer). Capped at NOTE_LINES/NOTE_CHARS."""
+    text = re.sub(r"<br\s*/?>|</?(p|div|ul|ol|li|h\d)\b[^>]*>", "\n", text or "", flags=re.I)
+    text = html.unescape(re.sub(r"<[^>]+>", "", text)).replace("\xa0", " ")
+    lines = []
+    for line in text.splitlines():
+        line = re.sub(r"\s+", " ", re.sub(r"(https?://|www\.)\S+", "", line)).strip()
+        if re.search(r"\w", line) and not re.search(r"runna app|in runna\b", line, re.I):
+            lines.append(line)
+    note = "\n".join(lines[:NOTE_LINES])
+    return note if len(note) <= NOTE_CHARS else note[:NOTE_CHARS - 1].rstrip() + "…"
+
+
+# ---------------- month grids: Monday first, always GRID_WEEKS weeks ----------------
+def month_first(d, delta=0):
+    """The 1st of the month `delta` months away from d's."""
+    y, m = divmod(d.year * 12 + d.month - 1 + delta, 12)
+    return dt.date(y, m + 1, 1)
+
+
+def grid_start(first):
+    """The Monday on or before a month's 1st, where its grid begins."""
+    return first - dt.timedelta(days=first.weekday())
+
+
+def fetch_window(today):
+    """Dates [first, end) covering the grids of the previous, current and next month (the agenda's 7 days too)."""
+    return grid_start(month_first(today, -1)), grid_start(month_first(today, 1)) + dt.timedelta(weeks=GRID_WEEKS)
+
+
+def day_marks(events, first, end):
+    """{"YYYY-MM-DD": sources} for the grid's dots, days in [first, end) only. Long things get no dot: an all-day
+    event of more than one day (a stay) or a timed one of 24 h or more. A shorter timed event marks the day it
+    starts only, also when it runs past midnight."""
+    days = {}
+    for ev in events:
+        s, e = dt.datetime.fromisoformat(ev["start"]), dt.datetime.fromisoformat(ev["end"])
+        long = (e.date() - s.date()).days > 1 if ev["allday"] else e - s >= ONE_DAY
+        if not long and first <= s.date() < end:
+            days.setdefault(s.date().isoformat(), set()).add(ev["source"])
+    return {d: [n for n in SOURCES if n in got] for d, got in sorted(days.items())}
+
+
+# ---------------- read-only: calendar-auth's own login ----------------
+def login():
+    from google.oauth2.credentials import Credentials
+    from google.auth.transport.requests import Request, AuthorizedSession
+    from google.auth.exceptions import RefreshError
+    creds = Credentials.from_authorized_user_file(str(TOKEN), SCOPES)
+    if not creds.valid:
+        try:
+            creds.refresh(Request())
+        except RefreshError as e:
+            raise RuntimeError("Google login expired or was revoked: run calendar-auth") from e
+        TOKEN.write_text(creds.to_json()); TOKEN.chmod(0o600)
+    return AuthorizedSession(creds)
+
+
+def list_all(get, url, **params):
+    """Every item of a Google list call, following nextPageToken. Returns (items, pages read)."""
+    items, token = [], None
+    for pages in range(1, MAX_PAGES + 1):
+        page = get(url, **params, **({"pageToken": token} if token else {}))
+        items += page.get("items", [])
+        token = page.get("nextPageToken")
+        if not token:
+            return items, pages
+    raise RuntimeError(f"more than {MAX_PAGES} pages of results")
+
+
+def readonly_fetch(session=None, today=None, tz=None):
+    """Returns {"google": [...], "runna": [...] or LookupError, "pages": {source: pages read}} for the month grids'
+    window. session: anything with requests' get(url, params=, timeout=); by default the token.json login."""
+    s = session or login()
+    today, tz = today or TODAY, tz or TZ
+
+    def get(url, **params):
+        r = s.get(url, params=params, timeout=30)
+        if r.status_code == 403 and ("has not been used" in r.text or "SERVICE_DISABLED" in r.text):
+            raise RuntimeError("the Calendar API is not enabled on the Google Cloud project")
+        if r.status_code >= 400:
+            raise RuntimeError(f"Google Calendar API error {r.status_code}")
+        return r.json()
+
+    first, end = (dt.datetime.combine(d, dt.time(), tz) for d in fetch_window(today))
+    cals, _ = list_all(get, f"{API}/users/me/calendarList", maxResults=250)
+    primary = next((c for c in cals if c.get("primary")), None)
+    runna = next((c for c in cals if RUNNA.search(c.get("summary", ""))), None)
+    out = {"pages": {}}
+    for name, cal in (("google", primary), ("runna", runna)):
+        if not cal:
+            out[name] = LookupError("not set up: no Runna calendar in Google Calendar yet" if name == "runna"
+                                    else "no primary calendar found")
+            continue
+        items, out["pages"][name] = list_all(get, f"{API}/calendars/{urllib.parse.quote(cal['id'])}/events",
+                                             singleEvents="true", orderBy="startTime", timeMin=first.isoformat(),
+                                             timeMax=end.isoformat(), maxResults=PAGE_SIZE)
+        evs = []
+        for it in items:
+            if it.get("status") == "cancelled":
+                continue
+            if any(a.get("self") and a.get("responseStatus") == "declined" for a in it.get("attendees", [])):
+                continue
+            s_, e_ = it.get("start", {}), it.get("end", {})
+            allday = "date" in s_
+            if allday:
+                start = dt.datetime.combine(dt.date.fromisoformat(s_["date"]), dt.time(), tz)
+                stop = dt.datetime.combine(dt.date.fromisoformat(e_.get("date", s_["date"])), dt.time(), tz)
+            else:
+                start = dt.datetime.fromisoformat(s_["dateTime"]).astimezone(tz)
+                stop = dt.datetime.fromisoformat(e_.get("dateTime", s_["dateTime"])).astimezone(tz)
+            join = it.get("hangoutLink") or next((p.get("uri") for p in it.get("conferenceData", {}).get("entryPoints", [])
+                                                  if p.get("entryPointType") == "video"), "")
+            evs.append(event(name, it.get("id", ""), it.get("summary"), start, stop, allday, it.get("location"),
+                             it.get("htmlLink"), join, workout_note(it.get("description")) if name == "runna" else ""))
+        out[name] = evs
+    return out
+
+
+def fetch_all():
+    if TOKEN.exists():
+        return readonly_fetch()
+    err = LookupError("not set up: run calendar-auth once")
+    return {"google": err, "runna": err}
+
+
+# ---------------- view: what the popup shows ----------------
+# Rebuilt from the cached events every minute while the popup is open (`calendar-fetch --view`, run by eww's
+# scripts/calendar), so "Now", Join and finished events stay right between fetches. Layout, agreed with Codex:
+#   preview  Today and Tomorrow, at most PREVIEW_ROWS rows (a running event always shows)
+#   more     everything else in the 7 days, behind "More events (N)", at most MORE_ROWS rows
+#   ongoing  multi-day all-day events that cover today (a hotel stay), one quiet line each under the list
+#   months   the grids of the previous, current and next month, with each day's dots from the cache's marks
+# Every row has one line (dot, time, title); a click expands its details (full title, times, place, the workout).
+# Optional row parts also come as lists, empty when absent: subs (the "until" line), joins (the inline Join url) and
+# actions (the detail buttons). eww draws them with `for`, not :visible: eww applies :visible when a widget is first
+# mapped, and one inside a collapsed revealer never is, so it stays shown and widens the popup until the next poll.
+PREVIEW_ROWS = 4
+MORE_ROWS = 8           # with a long Runna workout and the month open, the popup still ends above 1800 px
+TITLE_CHARS = 26        # row title width in characters (eww limit-width); a longer title shows in full in the details
+# Detail and status text is wrapped here, not by GTK: a wrapping GTK label asks for its whole text on one line as
+# its natural width, and the popup window (not resizable, so it shrinks back after a collapse) would grow to it.
+DETAIL_CHARS = 32       # under a row title (15 px text)
+QUIET_DETAIL_CHARS = 42 # under an ongoing line, which has no time column
+STATUS_CHARS = 50       # the status line (13 px text)
+DETAIL_LINES = 12       # a row's details show at most this many lines (a long Runna workout), the last ending in "…"
+JOIN_EARLY = dt.timedelta(minutes=15)
+
+
+def day_label(d, today):
+    if d == today:
+        return "Today"
+    if d == today + ONE_DAY:
+        return "Tomorrow"
+    return f"{d:%a %-d %b}"
+
+
+def clean_title(ev):
+    """Runna titles carry an emoji and often repeat the distance ("🏃 10km Long Run • 10km"): drop both."""
+    if ev["source"] != "runna":
+        return ev["title"]
+    parts = [p.strip() for p in re.sub(r"^[^\w(]+", "", ev["title"]).split("•") if p.strip()]
+    if not parts:
+        return ev["title"]
+    return " · ".join([parts[0]] + [p for p in parts[1:] if p.lower() not in parts[0].lower()])
+
+
+def row(ev, now):
+    s, e = dt.datetime.fromisoformat(ev["start"]), dt.datetime.fromisoformat(ev["end"])
+    allday, title = ev["allday"], clean_title(ev)
+    live = not allday and s <= now < e
+    if allday:
+        last = (e - ONE_DAY).date()   # all-day end dates are exclusive
+        time = "Run" if ev["source"] == "runna" else "All day"
+        when = f"{s:%a %-d %b} to {last:%a %-d %b}" if last > s.date() else ""
+        through = f"through {last:%a %-d %b}"
+    else:
+        time = "Now" if live else f"{s:%H:%M}"
+        when = f"{s:%H:%M} to {e:%H:%M}" if e.date() == s.date() else f"{s:%a %H:%M} to {e:%a %H:%M}"
+        through = ""
+    details = [ev["title"] if (ev["source"] != "runna" and len(title) > TITLE_CHARS) else "", when,
+               ev["location"]] + ev["note"].replace("•", "·").splitlines()
+    key = hashlib.sha1(f'{ev["source"]}|{ev["id"]}|{ev["start"]}'.encode()).hexdigest()[:10]
+    sub = (f"until {e:%H:%M}" if e.date() == now.date() else f"until {e:%a %H:%M}") if live else ""
+    join = ev["join"] if ev["join"] and not allday and s - JOIN_EARLY <= now < e else ""
+    actions = [{"label": "Open in Calendar", "url": ev["link"], "join": False}] if ev["link"] else []
+    actions += [{"label": "Join", "url": ev["join"], "join": True}] if ev["join"] else []
+    return {"key": key, "source": ev["source"], "start": ev["start"], "allday": allday, "title": title, "time": time,
+            "now": live, "sub": sub, "through": through, "details": [d for d in details if d], "link": ev["link"],
+            "join": join, "join_url": ev["join"], "subs": [sub] if sub else [], "joins": [join] if join else [],
+            "actions": actions}
+
+
+def wrap(text, width):
+    """Pre-wrapped label text; a wrapped "· " line continues under its text, not under the bullet."""
+    return textwrap.fill(text, width, subsequent_indent="  " if text.startswith("· ") else "",
+                         break_long_words=True, break_on_hyphens=False)
+
+
+def clip(blocks, limit, width):
+    """Wrapped detail blocks cut to `limit` lines in all; when something is cut, the last line kept ends in "…"."""
+    lines = [(i, line) for i, b in enumerate(blocks) for line in b.split("\n")]
+    if len(lines) <= limit:
+        return blocks
+    lines = lines[:limit]
+    i, last = lines[-1]
+    lines[-1] = (i, last[:width - 1].rstrip() + "…")
+    out = {}
+    for i, line in lines:
+        out.setdefault(i, []).append(line)
+    return ["\n".join(b) for b in out.values()]
+
+
+def month_grid(first, today, marks):
+    """The grid of first's month: its title and GRID_WEEKS weeks from the Monday on or before the 1st."""
+    start, weeks = grid_start(first), []
+    for w in range(GRID_WEEKS):
+        days = [start + dt.timedelta(weeks=w, days=i) for i in range(7)]
+        weeks.append({"wk": days[0].isocalendar().week, "days": [
+            {"d": d.day, "in_month": d.month == first.month, "today": d == today,
+             "dots": list(marks.get(d.isoformat(), []))} for d in days]})
+    return {"title": f"{first:%B %Y}", "weeks": weeks}
+
+
+def view(data, now=None):
+    now = now or dt.datetime.now().astimezone()
+    today = now.date()
+    midnight = lambda d: dt.datetime.combine(d, dt.time(), now.tzinfo)
+    events = sorted(data.get("events", []), key=lambda x: x["start"])
+    ongoing, days = [], []
+    for i in range(DAYS):
+        d = today + dt.timedelta(days=i)
+        lo, hi = midnight(d), midnight(d + ONE_DAY)
+        rows = []
+        for ev in events:
+            s, e = dt.datetime.fromisoformat(ev["start"]), dt.datetime.fromisoformat(ev["end"])
+            if not (s < hi and e > lo):
+                continue
+            if ev["allday"] and e - s > ONE_DAY:
+                # multi-day all-day: one quiet line while it covers today, else once on the day it starts
+                if s <= midnight(today):
+                    if i == 0:
+                        r = row(ev, now)
+                        ongoing.append(dict(r, title=ev["title"].split(" | ")[0].strip() or r["title"], sub=r["through"],
+                                            details=[ev["title"]] + [x for x in r["details"] if x != ev["title"]]))
+                    continue
+                if s.date() != d:
+                    continue
+            elif not ev["allday"] and (e <= now or (s < lo and i > 0)):
+                continue   # finished, or a timed event already shown on the day it started
+            rows.append(row(ev, now))
+        rows.sort(key=lambda r: (not r["allday"], r["start"]))
+        if rows:
+            days.append((d, rows))
+
+    preview, more, budget = [], [], PREVIEW_ROWS
+    for d, rows in days:
+        label, shown, rest = day_label(d, today), [], []
+        for r in rows:
+            if d <= today + ONE_DAY and (budget > 0 or r["now"]):
+                shown.append(r)
+                budget -= 1
+            else:
+                rest.append(r)
+        if shown:
+            preview.append({"label": label, "events": shown})
+        if rest:
+            more.append({"label": label, "events": rest})
+    empty = ""
+    if not preview:
+        if more:   # nothing today or tomorrow: show the next event up front
+            first = more[0]
+            preview = [{"label": first["label"], "events": first["events"][:1]}]
+            more = ([dict(first, events=first["events"][1:])] if first["events"][1:] else []) + more[1:]
+            empty = "Nothing today or tomorrow"
+        else:
+            empty = "Nothing in the next 7 days" if data.get("connected", True) else "Calendar not connected yet"
+    total, kept, left = sum(len(g["events"]) for g in more), [], MORE_ROWS
+    for g in more:
+        if left > 0:
+            kept.append(dict(g, events=g["events"][:left]))
+            left -= len(kept[-1]["events"])
+    hidden = total - sum(len(g["events"]) for g in kept)
+    for g in preview + kept:
+        for r in g["events"]:
+            r["details"] = clip([wrap(d, DETAIL_CHARS) for d in r["details"]], DETAIL_LINES, DETAIL_CHARS)
+    for r in ongoing:
+        r["details"] = clip([wrap(d, QUIET_DETAIL_CHARS) for d in r["details"]], DETAIL_LINES, QUIET_DETAIL_CHARS)
+    return {"connected": data.get("connected", False), "status": wrap(data.get("status", ""), STATUS_CHARS),
+            "title": f"{now:%A %-d %B}", "month": f"{now:%B %Y}", "empty": empty, "preview": preview,
+            "more": kept, "more_count": total, "more_hidden": hidden,
+            "more_tail": [f"+{hidden} more in Google Calendar"] if hidden else [], "ongoing": ongoing,
+            "months": [month_grid(month_first(today, k), today, data.get("marks") or {}) for k in (-1, 0, 1)]}
+
+
+# ---------------- the cache ----------------
+def merge(results, old, now):
+    """The new cache from this round's results ({source: events or the error it failed with, "pages": {...}}) and the
+    last cache. A source that failed keeps its last good events and dots for up to a day, one not set up has none.
+    `events` keeps what overlaps the next DAYS days; `marks` covers the whole fetch window."""
+    day0 = dt.datetime.combine(now.date(), dt.time(), now.tzinfo)
+    agenda_end, (first, end) = day0 + dt.timedelta(days=DAYS), fetch_window(now.date())
+    in_agenda = lambda ev: (dt.datetime.fromisoformat(ev["start"]) < agenda_end
+                            and dt.datetime.fromisoformat(ev["end"]) > day0)
+    sources, events, stale = {}, [], []
+    for name in SOURCES:
+        got = results.get(name)
+        if isinstance(got, list):
+            sources[name] = {"ok": True, "message": f"{sum(map(in_agenda, got))} events", "updated": now.isoformat(),
+                             "pages": results.get("pages", {}).get(name, 0)}
+            events += got
+            continue
+        prev = old.get("sources", {}).get(name, {})
+        fresh = prev.get("updated") and now - dt.datetime.fromisoformat(prev["updated"]) < dt.timedelta(days=1)
+        keep = bool(fresh) and not isinstance(got, LookupError)
+        kept = [ev for ev in old.get("events", []) if ev.get("source") == name] if keep else []
+        stale += [name] if keep else []
+        msg = str(got) if isinstance(got, (LookupError, RuntimeError)) else f"{type(got).__name__}: {got}"
+        sources[name] = {"ok": False, "message": msg[:160], "updated": prev.get("updated", "")}
+        events += kept
+        log(f"{name}: {msg}" + (f" (kept {len(kept)} cached events)" if kept else ""))
+    marks = day_marks(events, first, end)
+    for d, got in (old.get("marks") or {}).items():   # the stale source's old dots
+        if first.isoformat() <= d < end.isoformat() and any(n in stale for n in got):
+            marks[d] = [n for n in SOURCES if n in marks.get(d, []) or (n in stale and n in got)]
+    status = "; ".join(f"{n.title()}: {s['message']}" for n, s in sources.items() if not s["ok"])
+    return {"sources": sources, "events": sorted(filter(in_agenda, events), key=lambda x: x["start"]),
+            "marks": dict(sorted(marks.items())), "connected": any(s["ok"] for s in sources.values()),
+            "status": status}
+
+
+def push_view(data):
+    eww = HOME / ".local/bin/eww"
+    if eww.exists() and "CALENDAR_CACHE" not in os.environ:
+        subprocess.run([str(eww), "update", "calendar=" + json.dumps(view(data), ensure_ascii=False)],
+                       capture_output=True, timeout=10)
+
+
+def main():
+    try:
+        old = json.loads(CACHE.read_text())
+    except Exception:
+        old = {}
+    if "--view" in sys.argv:   # no network: rebuild the popup's view from the cache
+        print(json.dumps(view(old or {"connected": False, "status": ""}), ensure_ascii=False))
+        return
+    try:
+        results = fetch_all()
+    except Exception as e:  # login or network trouble for both calendars
+        results = {"google": e, "runna": e}
+    out = {"generated": NOW.isoformat(), **merge(results, old, NOW)}
+    CACHE.parent.mkdir(parents=True, exist_ok=True)
+    tmp = CACHE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(out, ensure_ascii=False))
+    os.replace(tmp, CACHE)
+    push_view(out)
+    if "--print" in sys.argv:
+        print(json.dumps(out, indent=1, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()

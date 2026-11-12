@@ -1,0 +1,104 @@
+#!/usr/bin/env -S uv run --quiet --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["google-auth-oauthlib>=1.2"]
+# ///
+"""One-time Google login for calendar-fetch, with a Desktop OAuth client of your own Google Cloud project.
+
+  calendar-auth            read-only login (scope calendar.readonly); token in ~/.local/share/calendar-fetch/token.json
+  calendar-auth --gcalcli  full calendar access for gcalcli instead (gcalcli cannot do read-only);
+                           token in ~/.local/share/gcalcli/oauth
+  --phone                  copy-and-paste login for a phone over SSH: prints the consent link, then takes the address
+                           the phone's browser ends on (it shows a "can't connect" page) or just the code.
+                           Chosen automatically when there is no display, as in an SSH session.
+  --client-file PATH       OAuth client JSON (default ~/.config/health-photos/client_secret.json)
+
+The client id and secret are read from the client JSON at login time. The secret never goes on a command line,
+into a log or onto the screen. Afterwards calendar-fetch runs once and says what it found.
+"""
+import json
+import os
+import pickle
+import subprocess
+import sys
+import urllib.parse
+from pathlib import Path
+
+HOME = Path.home()
+READONLY = ["https://www.googleapis.com/auth/calendar.readonly"]
+FULL = ["https://www.googleapis.com/auth/calendar"]
+TOKEN = HOME / ".local/share/calendar-fetch/token.json"
+GCALCLI_TOKEN = HOME / ".local/share/gcalcli/oauth"
+REDIRECT = "http://localhost"
+args = sys.argv[1:]
+use_gcalcli = "--gcalcli" in args
+phone = "--phone" in args or not os.environ.get("DISPLAY")
+client_file = Path(os.path.expanduser(args[args.index("--client-file") + 1])) if "--client-file" in args \
+    else HOME / ".config/health-photos/client_secret.json"
+client = json.loads(client_file.read_text())
+if not (client.get("installed") or {}).get("client_secret"):
+    sys.exit(f"calendar-auth: {client_file} is not a Desktop OAuth client file")
+scopes = FULL if use_gcalcli else READONLY
+
+
+def phone_login():
+    from google_auth_oauthlib.flow import Flow
+    flow = Flow.from_client_config(client, scopes=scopes, redirect_uri=REDIRECT, autogenerate_code_verifier=True)
+    url, state = flow.authorization_url(access_type="offline", prompt="consent")
+    print("1. Open this link on your phone (tap it, or copy it into Safari):\n")
+    print(url + "\n")
+    print('2. Choose your Google account. At "Google hasn\'t verified this app" tap Advanced, then continue.')
+    print("3. Allow " + ("read-only " if not use_gcalcli else "") + "calendar access.")
+    print("4. Safari then fails to open a localhost page. That is expected: copy the whole address from the")
+    print("   address bar and paste it here (or paste just the code).\n")
+    pasted = input("Address or code: ").strip()
+    if pasted.startswith("http"):
+        q = urllib.parse.parse_qs(urllib.parse.urlparse(pasted).query)
+        if "error" in q:
+            sys.exit(f"calendar-auth: Google returned an error: {q['error'][0]}")
+        if q.get("state", [""])[0] != state:
+            sys.exit("calendar-auth: that address belongs to a different login attempt; run calendar-auth again")
+        code = q.get("code", [""])[0]
+    else:
+        code = pasted
+    if not code:
+        sys.exit("calendar-auth: no code found in what was pasted")
+    try:
+        flow.fetch_token(code=code)
+    except Exception as e:
+        sys.exit(f"calendar-auth: Google did not accept the code ({type(e).__name__}). "
+                 "Codes expire after a few minutes and work once; run calendar-auth again.")
+    return flow.credentials
+
+
+def desktop_login():
+    from google_auth_oauthlib.flow import InstalledAppFlow
+    flow = InstalledAppFlow.from_client_config(client, scopes)
+    print("A browser window opens for the Google login. If it shows \"Google hasn't verified this app\",")
+    print("choose Advanced, then continue to the app, and allow calendar access.")
+    return flow.run_local_server(port=0, open_browser=True, prompt="consent")
+
+
+def save(path, data, binary=False):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    old = os.umask(0o077)
+    try:
+        path.write_bytes(data) if binary else path.write_text(data)
+    finally:
+        os.umask(old)
+    path.chmod(0o600)
+
+
+creds = phone_login() if phone else desktop_login()
+if use_gcalcli:
+    save(GCALCLI_TOKEN, pickle.dumps(creds), binary=True)
+    print(f"Saved the login where gcalcli reads it: {GCALCLI_TOKEN} (only you can read it).")
+else:
+    save(TOKEN, creds.to_json())
+    print(f"Saved the login to {TOKEN} (only you can read it).")
+
+print("Fetching your calendar once...")
+subprocess.run([str(HOME / ".local/bin/uv"), "run", "--quiet", "--script", str(HOME / ".local/bin/calendar-fetch")])
+cache = json.loads((HOME / ".cache/eww/calendar.json").read_text())
+for name, s in cache["sources"].items():
+    print(f"  {'Runna' if name == 'runna' else 'Google'}: {'ok, ' if s['ok'] else ''}{s['message']}")
