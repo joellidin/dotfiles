@@ -361,14 +361,14 @@
     (slider :title "Brightness" :icon "" :value brightness :cmd "scripts/brightness set {}")
     (box :orientation "v" :space-evenly false :spacing 6
       (label :class "section" :halign "start" :xalign 0 :text "Radios, notifications, theme")
-      (box :class "toggles" :spacing 10 :homogeneous true
+      (box :class "toggles" :spacing 10
         (toggle :label "Wi-Fi"     :icon "" :on {toggles.wifi} :cmd "nmcli radio wifi ${toggles.wifi ? 'off' : 'on'}")
         (toggle :label "Bluetooth" :icon ""   :on {toggles.bt}   :cmd "bluetoothctl power ${toggles.bt ? 'off' : 'on'}")
         (toggle :label "No alerts" :icon "" :on {toggles.dnd} :cmd "scripts/dnd toggle")
         (toggle :label {toggles.dark ? "Dark" : "Light"} :icon {toggles.dark ? "" : ""} :on {toggles.dark} :cmd "$HOME/.local/bin/theme-mode toggle")))
     (box :orientation "v" :space-evenly false :spacing 6
       (label :class "section" :halign "start" :xalign 0 :text "Power profile")
-      (box :class "profiles" :spacing 10 :homogeneous true
+      (box :class "profiles" :spacing 10
         (profile-btn :name "power-saver" :label "Saver")
         (profile-btn :name "balanced"    :label "Balanced")
         (profile-btn :name "performance" :label "Performance")))
