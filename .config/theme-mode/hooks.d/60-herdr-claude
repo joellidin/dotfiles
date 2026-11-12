@@ -1,5 +1,6 @@
 #!/usr/bin/sh
-# Make Claude Code (theme = "auto") follow the dark/light switch inside herdr.
+# Make Claude Code (theme = "auto") follow the dark/light switch inside herdr, on the laptop and on
+# every enabled saved herdr machine.
 #
 # Claude listens for the terminal's colour-scheme report (DEC mode 2031, ESC[?997;1n dark /
 # ESC[?997;2n light) and, on receiving one, re-reads the background colour with an OSC 11 query.
@@ -7,21 +8,114 @@
 # the query answers with the OLD colour and Claude ends up one toggle behind (measured 2026-11-08).
 # Re-sending the report a few seconds later, once herdr has caught up, makes Claude re-detect
 # correctly. Claude only uses the report as a trigger; the OSC 11 answer decides the theme.
+#
+# Claude panes on remote herdr servers (verda-vip-1, lidin) never get a report of their own and kept
+# the old theme. Their server already answers OSC 11 with the new colours (a report sent by hand
+# switched a remote pane within 3 s, 2026-11-12), so each enabled machine gets the same nudge
+# through `herdr --machine <id>`.
+#
+# Remote calls stay passive. `herdr --machine` runs over herdr's shared OpenSSH connection, and
+# with no live master it opens a new one and authenticates (lidin uses a YubiKey: touch requests
+# and agent passphrase popups after a resume, 2026-11-12). Two guards:
+# - A machine is only called while herdr's sidebar already holds a live link to it: its bridge
+#   (`ssh ... -S <prefix>-%C ... -T <target> ... remote-client-bridge`) is running and
+#   `ssh -O check` on a <prefix>* socket finds the master up. This reads herdr internals; if they
+#   change, nothing matches and the machine is skipped (fails safe). It also keeps a down link from
+#   turning into a refused login every 5 s, which fail2ban could punish.
+# - A master still up on a dead link (up to ~60 s after a resume) passes that check, and if it dies
+#   while a call waits on it, OpenSSH falls back to a fresh login. So remote calls run without the
+#   SSH agent and with SSH_ASKPASS_REQUIRE=never: mux clients do not need the agent, and a fresh
+#   login then cannot sign or prompt (lidin refuses in ~1 s, no touch, no popup; measured
+#   2026-11-12).
+#
+# After a resume the links can stay down for a minute or more (herdr reconnected after 67 s and
+# 91 s, measured 2026-11-12), so each machine is retried every 5 s until it is linked and answers,
+# for up to 3 minutes. A call over a dead link can hang for ~2 minutes while herdr retries SSH, so
+# every remote call has a time limit (20 s; a reachable machine answers in 1 to 2 s), and each
+# machine runs on its own, so one bad machine never delays the others or the local panes. Without
+# timeout, pgrep or ssh only the local panes are nudged.
 herdr_bin=$(command -v herdr 2>/dev/null || echo "$HOME/.local/bin/herdr")
 [ -x "$herdr_bin" ] || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 case "$1" in dark) code=1 ;; light) code=2 ;; *) exit 0 ;; esac
 report=$(printf '\033[?997;%sn' "$code")
 
+have() { command -v "$1" >/dev/null 2>&1; }
+
+# h ARGS...: run the local herdr. No stdin, so it cannot swallow the pane list feeding `send`.
+h() { "$herdr_bin" "$@" </dev/null; }
+
+# linked TARGET: true if herdr's sidebar bridge to TARGET is running and its SSH master is up.
+# Only asks the local master (`ssh -O check`), never connects or authenticates.
+linked() {
+  for prefix in $(pgrep -a -x ssh </dev/null 2>/dev/null | awk -v t="$1" '
+      /remote-client-bridge/ {
+        s = ""
+        for (i = 3; i < NF; i++) {
+          if ($i == "-S") s = $(i + 1)
+          if ($i == "-T") { if ($(i + 1) == t && s ~ /%C$/) print substr(s, 1, length(s) - 2); break }
+        }
+      }'); do
+    for sock in "$prefix"*; do
+      [ -S "$sock" ] && timeout 5 ssh -F /dev/null -o BatchMode=yes -S "$sock" -O check x \
+        </dev/null >/dev/null 2>&1 && return 0
+    done
+  done
+  return 1
+}
+
+# r ID TARGET ARGS...: run `herdr --machine ID ARGS...` only while linked to TARGET (else return
+# 124, as for a timeout), without the SSH agent or askpass, time-limited (TERM at 20 s, KILL 2 s
+# later), with no stdin.
+r() {
+  linked "$2" || return 124
+  r_id=$1; shift 2
+  env -u SSH_AUTH_SOCK SSH_ASKPASS_REQUIRE=never \
+    timeout -k 2 20 "$herdr_bin" --machine "$r_id" "$@" </dev/null
+}
+
+# claude_panes: read `agent list` JSON, print the pane id of each Claude pane.
+claude_panes() { jq -r '.result.agents[]? | select(.agent == "claude") | .pane_id'; }
+
+# send CMD...: send the report to each pane id read from stdin, with `CMD... pane send-text`.
+send() {
+  while IFS= read -r pane; do
+    "$@" pane send-text "$pane" "$report" >/dev/null 2>&1
+    [ $? -lt 124 ] || break  # timed out, killed or link gone: skip the machine's other panes
+  done
+}
+
+# remote ID TARGET: from +5 s, every 5 s, ask one machine for its agents until it is linked and
+# answers (giving up 3 minutes after the switch), then report to its Claude panes twice, 7 s apart,
+# since the remote server may refresh its colours just after the link comes back.
+remote() {
+  give_up=$(($(date +%s) + 180))
+  sleep 5
+  until out=$(r "$1" "$2" agent list 2>/dev/null) &&
+      printf '%s\n' "$out" | jq -e '.result.agents | arrays' >/dev/null 2>&1; do
+    [ "$(date +%s)" -lt "$give_up" ] || return
+    sleep 5
+  done
+  printf '%s\n' "$out" | claude_panes | send r "$1" "$2"
+  sleep 7
+  printf '%s\n' "$out" | claude_panes | send r "$1" "$2"
+}
+
 # Detach: theme-mode runs hooks sequentially and must not wait for us.
 (
+  machines=$(have timeout && have pgrep && have ssh &&
+    timeout -k 2 20 "$herdr_bin" machine list --json 2>/dev/null \
+      | jq -r '.[]? | select(.enabled == true) | "\(.id) \(.target)"')
+  while read -r id target; do
+    [ -n "$target" ] || continue
+    remote "$id" "$target" &
+  done <<EOF
+$machines
+EOF
   for delay in 5 7; do
     sleep "$delay"
-    "$herdr_bin" agent list 2>/dev/null \
-      | jq -r '.result.agents[]? | select(.agent == "claude") | .pane_id' \
-      | while IFS= read -r pane; do
-          "$herdr_bin" pane send-text "$pane" "$report" >/dev/null 2>&1
-        done
+    h agent list 2>/dev/null | claude_panes | send h
   done
+  wait
 ) >/dev/null 2>&1 &
 exit 0
