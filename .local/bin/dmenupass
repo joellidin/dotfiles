@@ -1,4 +1,4 @@
 #!/bin/sh
 # SUDO_ASKPASS (see ~/.config/shell/profile): `sudo -A` asks for the password with a rofi prompt.
 # sudo passes its prompt text as $1.
-exec rofi -dmenu -password -l 0 -p "${1:-Password}" </dev/null
+exec rofi -dmenu -password -theme "$HOME/.config/rofi/password.rasi" -p "${1:-Password}" </dev/null

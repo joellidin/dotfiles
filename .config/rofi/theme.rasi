@@ -1,7 +1,8 @@
-/* Shared rofi look (rofi 2.0), the same card as the spotlight search and the eww popups: a rounded panel,
-   a pill-shaped input field, and the selected row as a solid accent pill. Colours come from colors.rasi,
-   which ~/.config/rofi/gen-colors writes on every dark/light switch. Menus that need another shape
-   (power menu, password prompt) adjust it with -theme-str. */
+/* Shared rofi look (rofi 2.0), the same card as the spotlight search and the eww popups: a panel with the eww
+   popups' 24 px radius, a rounded input field, quiet secondary text for messages, and the selected row as a solid
+   accent pill. Colours come from colors.rasi, which ~/.config/rofi/gen-colors writes on every dark/light switch.
+   Menus with another shape adjust it: the power menu with -theme-str, password prompts with password.rasi.
+   One quoted value per line: rofi's lexer matches a string from the first to the last quote on a line. */
 @import "colors.rasi"
 
 * {
@@ -15,38 +16,40 @@ window {
   location: center; anchor: center;
   width: 1000px;
   background-color: @bg;
-  border: 2px; border-color: @field; border-radius: 28px;
+  border: 2px; border-color: @edge; border-radius: 24px;
 }
 mainbox { padding: 20px; spacing: 12px; children: [ inputbar, message, listview ]; }
 
+/* the prompt names the menu, so no separator glyph; no placeholder either: password prompts must not invite
+   filtering */
 inputbar {
-  background-color: @field; border-radius: 20px; padding: 16px 22px; spacing: 16px;
-  children: [ prompt, textbox-prompt-colon, entry ];
+  background-color: @field; border-radius: 14px; padding: 14px 20px; spacing: 12px;
+  children: [ prompt, entry ];
 }
-prompt { text-color: @accent; vertical-align: 0.5; font: "JetBrainsMono Nerd Font Bold 14"; }
-/* one quoted value per line: rofi's lexer matches a string from the first to the last quote on a line */
-textbox-prompt-colon {
-  expand: false; text-color: @dim; vertical-align: 0.5;
-  str: "›";
-  font: "JetBrainsMono Nerd Font 16";
+prompt {
+  text-color: @fg; vertical-align: 0.5;
+  font: "JetBrainsMono Nerd Font Bold 13";
 }
 entry {
   expand: true; vertical-align: 0.5; cursor: text;
-  font: "JetBrainsMono Nerd Font 16";
+  font: "JetBrainsMono Nerd Font 14";
   placeholder: "";
 }
-/* no placeholder: the prompt says what to type, and password prompts must not invite filtering */
 
-message { background-color: @field; border-radius: 14px; padding: 10px 18px; }
-textbox { text-color: @fg; vertical-align: 0.5; }
+/* messages (uptime, hints) are secondary text, not a filled capsule */
+message { background-color: transparent; padding: 4px 12px; }
+textbox {
+  text-color: @dim; vertical-align: 0.5;
+  font: "JetBrainsMono Nerd Font 11";
+}
 
 listview { lines: 8; fixed-height: false; dynamic: true; scrollbar: false; spacing: 4px; cycle: true; }
-element { padding: 10px 16px; border-radius: 16px; spacing: 16px; children: [ element-icon, element-text ]; }
+element { padding: 10px 16px; border-radius: 12px; spacing: 12px; children: [ element-icon, element-text ]; }
 element normal.normal, element alternate.normal, element normal.active, element alternate.active {
   background-color: transparent; text-color: @fg;
 }
 element normal.urgent, element alternate.urgent { background-color: transparent; text-color: @urgent; }
 element selected.normal, element selected.active { background-color: @accent; text-color: @on-accent; }
 element selected.urgent { background-color: @urgent; text-color: @on-accent; }
-element-icon { size: 1.7em; vertical-align: 0.5; }
+element-icon { size: 36px; vertical-align: 0.5; }
 element-text { vertical-align: 0.5; text-color: inherit; }

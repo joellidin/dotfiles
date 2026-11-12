@@ -1,6 +1,8 @@
 /* Spotlight-style launcher (rofi 2.0). Colours come from ~/.config/rofi/colors.rasi, which gen-colors rewrites on
-   every dark/light switch (the same file the other rofi menus use). Layout: one centred card, big search field,
-   rows with large icons and a dim type label, selection as a solid accent pill. */
+   every dark/light switch (the same file the other rofi menus use). Layout: one centred card with the eww popups'
+   24 px radius, a search field with a plain search glyph, rows with large icons and a dim type label, selection as
+   a solid accent pill. Radii, padding and message style match ~/.config/rofi/theme.rasi.
+   One quoted value per line: rofi's lexer matches a string from the first to the last quote on a line. */
 configuration {
   show-icons: true;
   icon-theme: "Yaru";
@@ -17,7 +19,6 @@ configuration {
 @import "~/.config/rofi/colors.rasi"
 
 * {
-  edge: @field;
   font: "JetBrainsMono Nerd Font 13";
   background-color: transparent;
   text-color: @fg;
@@ -28,28 +29,35 @@ window {
   location: north; anchor: north; y-offset: 340px;
   width: 1320px;
   background-color: @bg;
-  border: 2px; border-color: @edge; border-radius: 28px;
+  border: 2px; border-color: @edge; border-radius: 24px;
 }
 mainbox { padding: 20px; spacing: 12px; children: [ inputbar, message, listview ]; }
 
 inputbar {
-  background-color: @field; border-radius: 20px; padding: 18px 24px; spacing: 18px;
-  children: [ icon-search, entry ];
+  background-color: @field; border-radius: 14px; padding: 14px 20px; spacing: 12px;
+  children: [ textbox-search, entry ];
 }
-icon-search { expand: false; filename: "system-search"; size: 1.9em; vertical-align: 0.5; }
+textbox-search {
+  expand: false; vertical-align: 0.5; text-color: @dim;
+  str: "󰍉";
+  font: "Symbols Nerd Font 16";
+}
 entry {
   expand: true;
-  font: "JetBrainsMono Nerd Font 18"; vertical-align: 0.5; cursor: text;
+  font: "JetBrainsMono Nerd Font 16"; vertical-align: 0.5; cursor: text;
   placeholder: "Search apps, windows, agents, files";
   placeholder-color: @dim;
 }
 
-message { background-color: @field; border-radius: 14px; padding: 10px 18px; }
-textbox { text-color: @fg; markup: true; }
+message { background-color: transparent; padding: 4px 12px; }
+textbox {
+  text-color: @dim; markup: true;
+  font: "JetBrainsMono Nerd Font 11";
+}
 
 listview { lines: 9; fixed-height: false; dynamic: true; scrollbar: false; spacing: 4px; cycle: true; }
-element { padding: 11px 16px; border-radius: 16px; spacing: 18px; children: [ element-icon, element-text ]; }
+element { padding: 10px 16px; border-radius: 12px; spacing: 12px; children: [ element-icon, element-text ]; }
 element normal.normal, element alternate.normal, element normal.active, element alternate.active { background-color: transparent; text-color: @fg; }
 element selected.normal, element selected.active { background-color: @accent; text-color: @on-accent; }
-element-icon { size: 2.1em; vertical-align: 0.5; }
+element-icon { size: 40px; vertical-align: 0.5; }
 element-text { vertical-align: 0.5; text-color: inherit; }

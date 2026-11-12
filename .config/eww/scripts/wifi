@@ -49,7 +49,7 @@ elif cmd == "connect":
         sys.exit(0)
     pw = ""
     if mode == "new":
-        r = run("rofi", "-dmenu", "-password", "-l", "0", "-p", f"Password for {ssid}", timeout=600)
+        r = run("rofi", "-dmenu", "-password", "-theme", os.path.expanduser("~/.config/rofi/password.rasi"), "-p", f"Password for {ssid}", timeout=600)
         if not r or r.returncode != 0 or not r.stdout.strip(): sys.exit(0)
         pw = r.stdout.rstrip("\n")
     msg = f"Connecting to {ssid}"

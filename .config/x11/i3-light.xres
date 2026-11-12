@@ -12,15 +12,19 @@ i3wm.base09: #884900
 i3wm.base0A: #6f5500
 i3wm.base0B: #006800
 i3wm.base0C: #005e8b
-i3wm.base0D: #0031a9
+! accent, read by rofi, eww, polybar and i3 title bars: muted plum instead of Modus blue
+i3wm.base0D: #70445b
 i3wm.base0E: #721045
 i3wm.base0F: #884900
-! focused workspace pill: pale blue tint with blue text
-i3wm.wsfocus_border: #ccdfff
-i3wm.wsfocus_bg: #ccdfff
-i3wm.wsfocus_fg: #0031a9
+! focused workspace pill: pale plum tint with plum text
+i3wm.wsfocus_border: #eee2e9
+i3wm.wsfocus_bg: #eee2e9
+i3wm.wsfocus_fg: #70445b
 ! polybar pill background and text (read by ~/.config/polybar/config.ini)
 i3wm.pill: #fbf7f0
 i3wm.pillfg: #595959
-! focused window border: muted blue (Modus blue #0031a9 mixed into the background)
-i3wm.focus_border: #97a8d4
+! focused window border: muted plum, the accent mixed into the background to the same contrast against an
+! unfocused border (1.96:1) as the muted blue it replaced
+i3wm.focus_border: #b9a3aa
+! rofi input fields: one step above the paper background (read by ~/.config/rofi/gen-colors)
+i3wm.input_bg: #efe9dd

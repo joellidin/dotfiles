@@ -1,33 +1,30 @@
 #!/bin/sh
-# powermenu: lock, suspend, log out, reboot or shut down from a row of rofi buttons. Bound to $mod+Shift+Escape
-# and the polybar power button. Log out, reboot and shut down ask once more, with Cancel preselected.
-# Look: ~/.config/rofi/theme.rasi (follows dark/light); the button row is set up here with -theme-str.
-buttons='window { width: COLSpx; }
+# powermenu: lock, suspend, log out, reboot or shut down. Drops down under the polybar power button (top right,
+# placed like the eww wifi and control popups) whether it is opened by a click or by $mod+Shift+Escape.
+# Log out, reboot and shut down ask once more, with Cancel preselected. Look: ~/.config/rofi/theme.rasi.
+dropdown='window { location: north east; anchor: north east; x-offset: -10px; y-offset: 66px; width: 600px; }
 mainbox { children: [ message, listview ]; }
-textbox { horizontal-align: 0.5; text-color: @dim; }
-listview { columns: N; lines: 1; spacing: 14px; fixed-columns: true; }
-element { orientation: vertical; padding: 30px 0 24px 0; border-radius: 22px; children: [ element-text ]; }
-element normal.normal, element alternate.normal { background-color: @field; }
-element-text { horizontal-align: 0.5; }'
+listview { lines: 5; spacing: 4px; }
+element { padding: 10px 18px; children: [ element-text ]; }'
 
-# a button: a large glyph from Symbols Nerd Font above its label
-btn() { printf '<span font_family="Symbols Nerd Font" size="180%%">%s</span>\n%s' "$1" "$2"; }
+# a row: a glyph from Symbols Nerd Font Mono (equal widths, so the labels line up), then the label
+row() { printf '<span font_family="Symbols Nerd Font Mono" size="120%%">%s</span>   %s' "$1" "$2"; }
 
-# pick MESSAGE BUTTON...: show the buttons in one row and print the index of the chosen one
+# pick MESSAGE ROW...: show the rows under the button and print the index of the chosen one.
+# The message is quiet secondary text (theme.rasi); $extra can add theme rules for one call.
+extra=
 pick() {
   mesg=$1; shift
-  n=$#; width=$((n * 250 + 80))
-  printf '%s|' "$@" | sed '$ s/|$//' |
-    rofi -dmenu -sep "|" -eh 3 -markup-rows -format i -no-custom -selected-row 0 -mesg "$mesg" \
-      -theme-str "$(printf '%s' "$buttons" | sed "s/COLS/$width/; s/N;/$n;/")"
+  printf '%s\n' "$@" | rofi -dmenu -markup-rows -format i -no-custom -selected-row 0 -mesg "$mesg" -theme-str "$dropdown $extra"
 }
 
-# confirm WHAT GLYPH: Cancel or WHAT, exit 0 only for WHAT
-confirm() { [ "$(pick "$1 now?" "$(btn 󰅖 Cancel)" "$(btn "$2" "$1")")" = 1 ]; }
+# confirm WHAT GLYPH: Cancel or WHAT, exit 0 only for WHAT. The question is full-strength text, not secondary.
+confirm() { extra='textbox { text-color: @fg; }'; [ "$(pick "$1 now?" "$(row 󰅖 Cancel)" "$(row "$2" "$1")")" = 1 ]; }
 
-up=$(uptime -p | sed 's/^up //')
-case "$(pick "$(hostname)  ·  up $up" \
-  "$(btn 󰌾 Lock)" "$(btn 󰤄 Suspend)" "$(btn 󰍃 'Log out')" "$(btn 󰜉 Reboot)" "$(btn 󰐥 'Shut down')")" in
+s=$(cut -d. -f1 /proc/uptime)
+up=$(printf 'up %dd %dh %dm' $((s / 86400)) $((s % 86400 / 3600)) $((s % 3600 / 60)) | sed 's/^up 0d /up /')
+case "$(pick "$up" \
+  "$(row 󰌾 Lock)" "$(row 󰤄 Suspend)" "$(row 󰍃 'Log out')" "$(row 󰜉 Reboot)" "$(row 󰐥 'Shut down')")" in
   0) loginctl lock-session ;;  # xss-lock locks, the same path as idle and lid close
   1) systemctl suspend ;;
   2) confirm 'Log out' 󰍃 && i3-msg exit ;;
