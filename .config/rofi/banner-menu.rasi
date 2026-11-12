@@ -1,0 +1,47 @@
+/* Shared look of the picture menus ($mod+F10 keys.rasi, the screenshot menu shots.rasi): the PIN card's shape (hangs
+   from the top edge of the screen, centred, 760 px, square top corners) with a picture banner, the menu title on a
+   dark glass pill over it, a search field, the list and a quiet key hint. Each menu file imports this one and sets
+   its picture on banner. Shared colours and rows from theme.rasi.
+   Use: rofi -dmenu -theme ~/.config/rofi/keys.rasi -p "TITLE" -theme-str 'textbox-help { str: "HINT"; }'
+   One quoted value per line: rofi's lexer matches a string from the first to the last quote on a line. */
+@import "theme.rasi"
+
+/* same window block as password.rasi, so the menus and the PIN card open in the same place */
+window {
+  location: north; anchor: north;
+  x-offset: 0px; y-offset: 0px;
+  width: 760px;
+  border: 0px 2px 2px 2px; border-color: @edge;
+  border-radius: 0px 0px 24px 24px;
+}
+mainbox { padding: 20px; spacing: 14px; children: [ banner, inputbar, listview, textbox-help ]; }
+
+/* rofi ignores height on a box, so the padding above the title sets the banner's height (fixed, whatever the list
+   length); the picture (2x the banner, 1432 x 340) is scaled to the banner's width and the rounded corners clip it */
+banner {
+  expand: false; orientation: horizontal;
+  padding: 96px 16px 16px 16px; border-radius: 16px;
+  children: [ prompt, banner-rest ];
+}
+banner-rest { expand: true; }
+/* the title sits on a dark glass pill, so it reads on the picture in either mode */
+prompt {
+  expand: false; padding: 8px 18px; border-radius: 12px;
+  background-color: rgba(18, 14, 16, 0.62); text-color: #f6eee8;
+  font: "JetBrainsMono Nerd Font Bold 14";
+}
+
+inputbar { children: [ textbox-search, entry ]; }
+textbox-search {
+  expand: false; vertical-align: 0.5; text-color: @dim;
+  str: "󰍉";
+  font: "Symbols Nerd Font 16";
+}
+entry { placeholder-color: @dim; }
+
+listview { lines: 8; }
+
+textbox-help {
+  expand: false; horizontal-align: 0.5; text-color: @dim;
+  font: "JetBrainsMono Nerd Font 10";
+}

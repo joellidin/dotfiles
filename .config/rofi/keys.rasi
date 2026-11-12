@@ -1,0 +1,6 @@
+/* $mod+F10 menus (~/.local/bin/yubikey-oath-dmenu): the picture menu from banner-menu.rasi with the neon-ring
+   picture, cropped to 2x the banner (1432 x 340) from the old adi1090x collection. */
+@import "banner-menu.rasi"
+banner {
+  background-image: url("~/.config/rofi/images/keys.jpg", width);
+}

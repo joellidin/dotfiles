@@ -1,116 +1,104 @@
 #!/bin/sh
+# $mod+F10: type or copy a website password or username (gopass, unlocked by the YubiKey's gpg key) or a one-time
+# code (the YubiKey's OATH accounts). The menus use ~/.config/rofi/keys.rasi: the PIN card's place at the top centre,
+# with a picture banner. No -normal-window: it makes rofi an i3 window, which i3 floats in the middle of the screen.
+
+theme=$HOME/.config/rofi/keys.rasi
+
+dim () { printf '<span alpha="50%%">%s</span>' "$1"; }    # quiet secondary text in a row
+# icons in the fixed-width symbols font, so every label starts at the same x
+ico () { printf '<span font="Symbols Nerd Font Mono 17">%s</span>' "$1"; }
+# the rows are Pango markup (-markup-rows), so an & or < in a name must be escaped or the row breaks
+esc () { sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'; }
+
+# menu TITLE: show the markup rows on stdin, print the 0-based index of the chosen row in the full list (-format i
+# counts in the unfiltered input, so the caller maps it back to its own plain list)
+menu () {
+    rofi -dmenu -theme "$theme" -p "$1" -markup-rows -format i -no-custom \
+         -matching fuzzy -i -sort -sorting-method fzf \
+         -theme-str 'textbox-help { str: "Enter to choose  ·  Esc to cancel"; }'
+}
+# nth N: line N (0-based) of stdin; exits if the menu gave no row number
+nth () {
+    case $1 in ''|*[!0-9]*) exit 1 ;; esac
+    sed -n "$(( $1 + 1 ))p"
+}
+
+# Pick a gopass entry under websites/ and set $account to its "site/user" part.
+website () {
+    sites=$(gopass ls --flat websites | cut -d "/" -f 2,3)
+    i=$(
+      printf '%s\n' "$sites" | esc \
+      | sed "s|^\([^/]*\)/\(.*\)$|$(ico 󰖟)   \1  $(dim '\2')|; t; s|^|$(ico 󰖟)   |" \
+      | menu "󰖟  Websites"
+    ) || exit 1
+    account=$(printf '%s\n' "$sites" | nth "$i")
+    [ -n "$account" ] || exit 1
+}
+
+# Ask for the OATH PIN, let the user pick an account, set $account and $code. The PIN goes to ykman on stdin
+# (ykman reads the password from stdin when that is not a terminal), never as --password: arguments are
+# readable by every process (ps, /proc/PID/cmdline). printf is a shell builtin, so it never shows there either.
+otp_code () {
+    pin=$(
+      rofi -password -dmenu -theme "$HOME/.config/rofi/password.rasi" -p "YubiKey PIN" </dev/null
+    ) || exit 0
+    # gpg's scdaemon opens the YubiKey exclusively through pcscd, and while it does ykman finds no accounts.
+    # Stop it to free the card; gpg starts it again when it next needs the key.
+    gpgconf --kill scdaemon
+    accounts=$(printf '%s\n' "$pin" | ykman oath accounts list 2>/dev/null) ||
+      { notify-send "YubiKey not inserted or wrong PIN"; exit 0; }
+
+    i=$(
+      printf '%s\n' "$accounts" | esc \
+      | sed "s|^\([^:]*\):\(.*\)$|$(ico 󰦝)   \1  $(dim '\2')|; t; s|^|$(ico 󰦝)   |" \
+      | menu "󰦯  One-time codes"
+    ) || exit 1
+    account=$(printf '%s\n' "$accounts" | nth "$i")
+    code=$(printf '%s\n' "$pin" | ykman oath accounts code -s "$account") ||
+      { notify-send "No code for $account"; exit 1; }
+}
 
 otp_print () {
-    pin=$(
-      rofi -password -dmenu -l 0 -p "Yubikey PIN" </dev/null
-    )
-    # Check if Yubikey is inserted and working
-    ykman oath accounts list --password $pin >/dev/null 2>&1 || { notify-send "Yubikey not inserted" ; exit 0; }
-
-    # Query account to print otp
-    account="$(
-      ykman oath accounts list --password $pin \
-      | sed "s/:/: /g" \
-      | rofi -dmenu -p "Choose account" \
-             -matching fuzzy -i \
-             -sort \
-             -sorting-method fzf \
-             -normal-window
-    )" || exit 1
-    ykman oath accounts code --password $pin -s "$(echo $account | sed "s/: /:/g")" | xdotool type --clearmodifiers --file - && xdotool key KP_Enter
+    otp_code
+    printf '%s\n' "$code" | xdotool type --clearmodifiers --file - && xdotool key KP_Enter
     notify-send "Printed oath for $account"
 }
 
 otp_copy () {
-    pin=$(
-      rofi -password -dmenu -l 0 -p "Yubikey PIN" </dev/null
-    )
-    # Check if Yubikey is inserted and working
-    ykman oath accounts list --password $pin >/dev/null 2>&1 || { notify-send "Yubikey not inserted" ; exit 0; }
-
-    # Query account to print otp
-    account="$(
-      ykman oath accounts list --password $pin \
-      | sed "s/:/: /g" \
-      | rofi -dmenu -p "Choose account" \
-             -matching fuzzy -i \
-             -sort \
-             -sorting-method fzf \
-             -normal-window
-    )" || exit 1
-    ykman oath accounts code --password $pin -s "$(echo $account | sed "s/: /:/g")" | xclip -selection c
+    otp_code
+    printf '%s\n' "$code" | xclip -selection c
     notify-send "Copied oath for $account"
 }
 
 password_print () {
-    account="$(
-      gopass ls --flat websites \
-      | cut -d "/" -f 2,3 \
-      | rofi -dmenu -p "Choose account" \
-             -matching fuzzy -i \
-             -sort \
-             -sorting-method fzf \
-             -normal-window
-    )" || exit 1
-
+    website
     notify-send "Touch Yubikey"
     gopass show -o "websites/$account" | xdotool type --clearmodifiers --file - && xdotool key KP_Enter
     notify-send "Printed password for:" "$account"
 }
 
 password_copy () {
-    account="$(
-      gopass ls --flat websites \
-      | cut -d "/" -f 2,3 \
-      | rofi -dmenu -p "Choose account" \
-             -matching fuzzy -i \
-             -sort \
-             -sorting-method fzf \
-             -normal-window
-    )" || exit 1
+    website
     notify-send "Touch Yubikey"
     gopass show -c "websites/$account" >/dev/null 2>&1
 }
 
 username_print () {
-    account="$(
-      gopass ls --flat websites \
-      | cut -d "/" -f 2,3 \
-      | rofi -dmenu -p "Choose account" \
-             -matching fuzzy -i \
-             -sort \
-             -sorting-method fzf \
-             -normal-window
-    )" || exit 1
+    website
     notify-send "Touch Yubikey"
     gopass show -f "websites/$account" username | head -n 1 | xdotool type --clearmodifiers --file -
     notify-send "Printed username for:" "$(echo $account | cut -d '/' -f 1)"
 }
 
 username_copy () {
-    account="$(
-      gopass ls --flat websites \
-      | cut -d "/" -f 2,3 \
-      | rofi -dmenu -p "Choose account" \
-             -matching fuzzy -i \
-             -sort \
-             -sorting-method fzf \
-             -normal-window
-    )" || exit 1
+    website
     notify-send "Touch Yubikey"
     gopass show -c -f "websites/$account" username >/dev/null 2>&1
 }
 
 user_pass_insert () {
-    account="$(
-      gopass ls --flat websites \
-      | cut -d "/" -f 2,3 \
-      | rofi -dmenu -p "Choose account" \
-             -matching fuzzy -i \
-             -sort \
-             -sorting-method fzf \
-             -normal-window
-    )" || exit 1
+    website
     notify-send "Touch Yubikey"
     gopass show -f "websites/$account" username | head -n 1 | xdotool type --clearmodifiers --file - && xdotool key Tab
     notify-send "Printed username for:" "$(echo $account | cut -d '/' -f 1)"
@@ -118,25 +106,30 @@ user_pass_insert () {
     notify-send "Printed password for:" "$account"
 }
 
-choice="$(
-  printf "%s\n" \
-    "(1) password and username" \
-    "(2) password" \
-    "(3) username" \
-    "(4) one time password" \
-    "(5) password (copy)" \
-    "(6) username (copy)" \
-    "(7) one time password (copy)" \
-  | rofi -dmenu -i -p "Choose what to insert" \
-         -normal-window
-)"
+# row N GLYPH LABEL [TAG]: a choice row with its number key and an optional quiet tag
+row () { printf '%s   %s   %s%s\n' "$(dim "$1")" "$(ico "$2")" "$3" "${4:+  $(dim "$4")}"; }
+
+# digits 1 to 7 pick a row at once, like maimpick
+choice=$(
+  {
+    row 1 󰟵 "Password and username"
+    row 2 󰌆 "Password"
+    row 3 󰀄 "Username"
+    row 4 󰦯 "One-time code"
+    row 5 󰌆 "Password" copy
+    row 6 󰀄 "Username" copy
+    row 7 󰦯 "One-time code" copy
+  } | rofi -dmenu -theme "$theme" -p "󰌋  Passwords" -markup-rows -format i -no-custom -i \
+        -kb-select-1 1 -kb-select-2 2 -kb-select-3 3 -kb-select-4 4 -kb-select-5 5 -kb-select-6 6 -kb-select-7 7 \
+        -theme-str 'textbox-help { str: "Press 1 to 7 to pick  ·  Esc to cancel"; }'
+) || exit 0
 
 case "$choice" in
-  "(1) password and username") user_pass_insert ;;
-  "(2) password")              password_print   ;;
-  "(3) username")              username_print   ;;
-  "(4) one time password")     otp_print        ;;
-  "(5) password (copy)")       password_copy    ;;
-  "(6) username (copy)")       username_copy    ;;
-  "(7) one time password (copy)") otp_copy      ;;
+  0) user_pass_insert ;;
+  1) password_print   ;;
+  2) username_print   ;;
+  3) otp_print        ;;
+  4) password_copy    ;;
+  5) username_copy    ;;
+  6) otp_copy         ;;
 esac
