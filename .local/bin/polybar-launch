@@ -20,9 +20,20 @@ fi
 # always a clean stop and start: a bar restarted in place many times (polybar-msg cmd restart) hung on 2026-11-08,
 # ignored SIGTERM and dropped clicks; give it 2 s to exit, then SIGKILL
 if pgrep -x polybar >/dev/null 2>&1; then
+  # polybar runs each module script in its own process group and stops those groups only on a clean exit. A bar that
+  # needs the SIGKILL (2026-11-11: stopped wifi, then stalled) leaves the rest running under PID 1, so note the
+  # groups now (children that lead their own group) and stop what is left of them once the bar is gone
+  kids=$(pgrep -d, -P "$(pgrep -d, -x polybar)" 2>/dev/null)
+  groups=$([ -n "$kids" ] && ps -o pid=,pgid= -p "$kids" 2>/dev/null | awk '$1 == $2 {printf "%s%s", s, $1; s = ","}')
   pkill -x polybar
   i=0; while pgrep -x polybar >/dev/null 2>&1 && [ $i -lt 20 ]; do sleep 0.1; i=$((i + 1)); done
   pkill -9 -x polybar 2>/dev/null
+  # old module groups: TERM, up to 1 s, then KILL (pkill -g, not kill -- -PGID: dash's kill rejects that form)
+  if [ -n "$groups" ]; then
+    pkill -g "$groups" 2>/dev/null
+    i=0; while pgrep -g "$groups" >/dev/null 2>&1 && [ $i -lt 10 ]; do sleep 0.1; i=$((i + 1)); done
+    pkill -9 -g "$groups" 2>/dev/null
+  fi
 fi
 log="${XDG_CACHE_HOME:-$HOME/.cache}/polybar.log"
 session_start "polybar -l warning main >>$log 2>&1"

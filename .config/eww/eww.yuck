@@ -32,9 +32,14 @@
 (deflisten wsdata :initial '{"ws":[],"mode":"default"}' "scripts/workspaces")
 (defpoll agentcount :interval "3s" :initial '{"blocked":0,"done":0,"working":0}' "scripts/agents-count")
 
+;; the focused workspace is a pill twice a dot's width: shape, not colour, marks it (the muted accent alone is
+;; about as bright as the grey occupied dots)
 (defwidget ws-dot [w]
   (eventbox :cursor "pointer" :onclick "i3-msg -q workspace number ${w.num}"
-    (label :class "dot ${w.state}" :text {w.state == "empty" || w.state == "visible" ? "" : ""})))
+    (box :space-evenly false :valign "center"
+      (box :class "dot-pill" :visible {w.state == "focused"} :valign "center")
+      (label :class "dot ${w.state}" :visible {w.state != "focused"}
+        :text {w.state == "empty" || w.state == "visible" ? "" : ""}))))
 
 (defwidget leftbar-w []
   (box :class "leftbar" :space-evenly false :spacing 15 :halign "start" :valign "center"
