@@ -1,0 +1,186 @@
+#!/usr/bin/python3 -I
+"""pinentry-rofi: gpg-agent's PIN and passphrase prompt as the rofi password card (~/.config/rofi/password.rasi),
+so gopass, $mod+F10 and commit signing ask the same way as `sudo -A`, the OTP PIN and the Wi-Fi popup.
+
+Set in ~/.gnupg/gpg-agent.conf:  pinentry-program /home/joel-lidin/.local/bin/pinentry-rofi
+then `gpgconf --reload gpg-agent`.
+
+Speaks the Assuan pinentry protocol on stdin/stdout (GETPIN, CONFIRM, MESSAGE and the SET* commands). Without an
+X display (SSH, a text console) it hands the whole session to pinentry-curses. The PIN only passes through rofi's
+stdout pipe and this process's memory: it is never logged or written to disk.
+Test: sh ~/.claude/plans/test-pinentry-rofi.sh
+"""
+import html
+import os
+import subprocess
+import sys
+from urllib.parse import unquote
+
+CANCELLED = "ERR 83886179 Operation cancelled <Pinentry>"  # GPG_ERR_CANCELED
+NOT_CONFIRMED = "ERR 83886194 Not confirmed <Pinentry>"   # GPG_ERR_NOT_CONFIRMED
+THEME = os.path.expanduser("~/.config/rofi/password.rasi")
+# a separate pid file, so an open rofi menu does not make the PIN prompt refuse to start
+PIDFILE = os.path.join(os.environ.get("XDG_RUNTIME_DIR") or "/tmp", "rofi-pinentry.pid")
+# a list instead of the masked input, for CONFIRM and MESSAGE
+CHOICE = "mainbox { children: [ badge-row, title-row, message, listview ]; } listview { lines: %d; }"
+
+
+def display_arg(argv):
+    for i, a in enumerate(argv):
+        if a == "--display" and i + 1 < len(argv):
+            return argv[i + 1]
+        if a.startswith("--display="):
+            return a.split("=", 1)[1]
+    return None
+
+
+def send(line):
+    sys.stdout.write(line + "\n")
+    sys.stdout.flush()
+
+
+def escape(s):  # Assuan data lines: only %, CR and LF are escaped
+    return s.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+
+def label(s):  # gpg marks keyboard mnemonics with "_" ("_OK"); rofi has none
+    return s.replace("__", "\0").replace("_", "").replace("\0", "_")
+
+
+class Session:
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.text = {}  # SETDESC, SETPROMPT, SETTITLE, SETERROR, SETOK, SETCANCEL, SETNOTOK, SETREPEATERROR
+        self.repeat = None
+
+    def heading(self, default):
+        return (self.text.get("SETPROMPT") or self.text.get("SETTITLE") or default).strip().rstrip(":").strip()
+
+    def message(self, error=None):
+        """The -mesg text: an error line in bold, then the description, as Pango markup."""
+        parts = []
+        err = error or self.text.get("SETERROR")
+        if err:
+            parts.append("<b>" + html.escape(err, quote=False) + "</b>")
+        desc = self.text.get("SETDESC", "").strip()
+        if desc:
+            lines = [ln.rstrip() for ln in desc.splitlines()]
+            out = []  # collapse runs of blank lines
+            for ln in lines:
+                if ln or (out and out[-1]):
+                    out.append(ln)
+            parts.append(html.escape("\n".join(out).strip(), quote=False))
+        return "\n".join(parts)
+
+    def rofi(self, args, rows=None):
+        """Run rofi; return (exit code, stdout without its one trailing newline)."""
+        cmd = ["rofi", "-dmenu", "-theme", THEME, "-pid", PIDFILE] + args
+        try:
+            r = subprocess.run(cmd, input=rows, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                               stdin=None if rows is not None else subprocess.DEVNULL, text=True)
+        except OSError:
+            return 1, ""
+        out = r.stdout[:-1] if r.stdout.endswith("\n") else r.stdout
+        return r.returncode, out
+
+    def ask(self, heading, error=None):
+        args = ["-password", "-p", heading]
+        mesg = self.message(error)
+        if mesg:
+            args += ["-mesg", mesg]
+        return self.rofi(args)
+
+    def getpin(self):
+        heading = self.heading("Passphrase")
+        error = None
+        for _ in range(3):
+            rc, pin = self.ask(heading, error)
+            if rc != 0:
+                return send(CANCELLED)
+            if self.repeat is None:
+                break
+            rc, again = self.ask(self.repeat or "Repeat")
+            if rc != 0:
+                return send(CANCELLED)
+            if again == pin:
+                send("S PIN_REPEATED")
+                break
+            error = self.text.get("SETREPEATERROR") or "The two entries do not match, try again"
+        else:
+            return send(CANCELLED)
+        if pin:
+            send("D " + escape(pin))
+        send("OK")
+
+    def confirm(self, one_button):
+        ok = label(self.text.get("SETOK") or "OK")
+        rows = [ok]
+        if not one_button:
+            rows.append(label(self.text.get("SETCANCEL") or "Cancel"))
+            if self.text.get("SETNOTOK"):
+                rows.append(label(self.text["SETNOTOK"]))
+        args = ["-format", "i", "-no-custom", "-selected-row", "0", "-p", self.heading("Confirm"),
+                "-theme-str", CHOICE % len(rows)]
+        mesg = self.message()
+        if mesg:
+            args += ["-mesg", mesg]
+        rc, choice = self.rofi(args, "\n".join(rows) + "\n")
+        if one_button or (rc == 0 and choice == "0"):
+            return send("OK")
+        if rc == 0 and choice == "2":
+            return send(NOT_CONFIRMED)
+        send(CANCELLED)
+
+    def handle(self, line):
+        cmd, _, arg = line.partition(" ")
+        c = cmd.upper()
+        if c in ("SETDESC", "SETPROMPT", "SETTITLE", "SETERROR", "SETOK", "SETCANCEL", "SETNOTOK",
+                 "SETREPEATERROR"):
+            self.text[c] = unquote(arg, errors="replace")
+            send("OK")
+        elif c == "SETREPEAT":
+            self.repeat = unquote(arg, errors="replace")
+            send("OK")
+        elif c == "GETINFO":
+            what = arg.strip().lower()
+            value = {"flavor": "rofi", "version": "1.0", "pid": str(os.getpid())}.get(what)
+            if value:
+                send("D " + value)
+            send("OK")
+        elif c == "GETPIN":
+            self.getpin()
+            self.text.pop("SETERROR", None)  # an error belongs to one attempt
+        elif c == "CONFIRM":
+            self.confirm("--one-button" in arg)
+        elif c == "MESSAGE":
+            self.confirm(True)
+        elif c == "RESET":
+            self.reset()
+            send("OK")
+        elif c == "BYE":
+            send("OK")
+            return False
+        else:  # OPTION, SETKEYINFO, SETTIMEOUT, SETQUALITYBAR, NOP, ...: nothing to show
+            send("OK")
+        return True
+
+
+def main():
+    if not os.environ.get("DISPLAY"):
+        d = display_arg(sys.argv[1:])
+        if d:
+            os.environ["DISPLAY"] = d
+    if not os.environ.get("DISPLAY"):
+        os.execv("/usr/bin/pinentry-curses", ["pinentry-curses"] + sys.argv[1:])
+    s = Session()
+    send("OK Pleased to meet you")
+    for raw in sys.stdin:
+        line = raw.rstrip("\r\n")
+        if line and not s.handle(line):
+            break
+
+
+if __name__ == "__main__":
+    main()
