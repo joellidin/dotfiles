@@ -1,0 +1,14 @@
+;; Saved alternative workspace animation, "Slide" (tried and liked 2026-11-12; Morph is the active one).
+;; One pill on an overlay glides over fixed 44 px slots with a squash and stretch; the dots sit 24 px apart.
+;; To use it: in eww.yuck, leftbar-w, replace (ws-row :d wsdata) with (ws-row-slide :d wsdata). Styles: _droplet-slide.scss.
+(defwidget ws-row-slide [d]
+  (box :class "pill ws slide" :space-evenly false :spacing 0
+    (overlay
+      (box :class "slots" :space-evenly false (for i in "[0,1,2,3,4,5,6,7,8,9]" (ws-dot :d d :i i)))
+      (box :class "glide at-${jq(d.ws, 'map(.state) | index(\"focused\")')}" :halign "start" :valign "center"
+        (box :class "glide-pill" :halign "center")))
+    (box :space-evenly false
+      (for w in {jq(d.ws, '.[10:]')}
+        (eventbox :cursor "pointer" :onclick "i3-msg -q workspace number ${w.num}"
+          (box :class "ws-dot ws-${w.state}" :valign "center"))))
+    (label :class "mode" :visible {d.mode != "default"} :text {d.mode})))

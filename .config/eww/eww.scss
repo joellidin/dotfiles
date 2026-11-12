@@ -13,11 +13,28 @@
 .pill { background-color: $bg; border-radius: 22px; min-height: 44px; padding: 0 22px; }
 .pill label { margin-top: -12px; margin-bottom: -12px; }
 .pill.kbd { padding: 0 18px; }
-.dot { font-size: 23px; padding: 0 9px; color: $base03; }
-.dot-pill { min-width: 38px; min-height: 19px; border-radius: 10px; margin: 0 9px; background-color: $accent; }
-.dot.occupied { color: $fg; }
-.dot.visible { color: $accent; }
-.dot.urgent { color: $red; }
+// workspace slots (ws-dot in eww.yuck): a filled dot, a ring when empty, the 38x19 pill when focused. Sizes, spacing
+// and colours match the old Nerd Font glyph dots (20 px advance, 9 px padding; the empty rings got $base04 from the
+// popups' .empty rule, hence the ws- prefix now). Every state keeps the 3 px border, coloured like the fill on solid
+// dots, so only size and colour change. Width = border 6 + min-width + padding-right: GTK3 rounds min-width up and
+// padding down, so splitting the growth evenly between them keeps two opposite transitions summing to an exact width.
+.ws-dot { min-width: 13px; min-height: 14px; padding: 0 1px 0 0; margin: 0 9px; border: 3px solid $base04;
+          border-radius: 10px; background-color: transparentize($base04, 1);
+          transition: all 260ms cubic-bezier(0.4, 0, 0.2, 1); }
+.ws-dot.ws-occupied { border-color: $fg; background-color: $fg; }
+.ws-dot.ws-visible { border-color: $accent; background-color: transparentize($accent, 1); }
+.ws-dot.ws-urgent { border-color: $red; background-color: $red; }
+.ws-dot.ws-focused { min-width: 22px; min-height: 13px; padding-right: 10px; border-color: $accent;
+                     background-color: $accent; }
+// slots past the last workspace collapse with ease-in: GTK3 rounds 0..1 px up, so keep that tail short
+.ws-dot.ws-gone { min-width: 0; padding: 0; margin: 0; border-left-width: 0; border-right-width: 0; opacity: 0;
+                  transition: all 200ms cubic-bezier(0.4, 0, 1, 1); }
+// rest-N (eww.yuck): the row's resting width, so overlapping transitions never pull in the pills on the right
+.ws-slots { transition: min-width 260ms cubic-bezier(0.4, 0, 0.2, 1); }
+@for $n from 1 through 10 {
+  .ws-slots.rest-#{38 * $n} { min-width: 38px * $n; }
+  .ws-slots.rest-#{38 * $n + 18} { min-width: 38px * $n + 18px; }
+}
 .mode { font-size: 20px; color: $yellow; padding-left: 10px; }
 .ag { font-size: 23px; }
 .ag.blocked { color: $red; }
@@ -169,3 +186,7 @@ scale slider { background-color: $fg; border-radius: 50%; min-width: 22px; min-h
 .microw:hover { background-color: $base02; }
 .micicon { font-size: 16px; color: $base04; }
 .micname { font-size: 15px; color: $fg; }
+
+// the saved Slide animation's styles (droplet-slide.yuck); all scoped, unused while Morph is active. Kept last, as
+// when it was tried, so equal-specificity rules resolve the same way.
+@import "_droplet-slide.scss";

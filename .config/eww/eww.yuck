@@ -37,18 +37,32 @@
 
 ;; the focused workspace is a pill twice a dot's width: shape, not colour, marks it (the muted accent alone is
 ;; about as bright as the grey occupied dots)
-(defwidget ws-dot [w]
-  (eventbox :cursor "pointer" :onclick "i3-msg -q workspace number ${w.num}"
-    (box :space-evenly false :valign "center"
-      (box :class "dot-pill" :visible {w.state == "focused"} :valign "center")
-      (label :class "dot ${w.state}" :visible {w.state != "focused"}
-        :text {w.state == "empty" || w.state == "visible" ? "" : ""}))))
+;; Every slot is one box whose class follows its workspace's state, so CSS transitions morph a dot into the pill.
+;; The `for` runs over a fixed list on purpose: a `for` over d.ws would rebuild every slot on each i3 event and
+;; nothing could animate. Slots past the last workspace are "gone" (zero width); workspaces above 10 (no key
+;; binding reaches them) get static dots from the second `for`. rest-N is the row's width at rest: it keeps quick
+;; repeated switches (several transitions in flight at once) from pulling in the pills on the right.
+(defwidget ws-dot [d i]
+  (eventbox :cursor "pointer" :onclick "i3-msg -q workspace number ${i + 1}"
+    (box :class "ws-dot ws-${d.ws[i]?.state ?: 'gone'}" :valign "center")))
+
+(defwidget ws-row [d]
+  (box :class "pill ws" :space-evenly false :spacing 0
+    (box :class "ws-slots rest-${jq(d.ws, '[.[:10][] | if .state == \"focused\" then 56 else 38 end] | add // 0')}"
+         :space-evenly false
+      (for i in "[0,1,2,3,4,5,6,7,8,9]" (ws-dot :d d :i i)))
+    (box :space-evenly false
+      (for w in {jq(d.ws, '.[10:]')}
+        (eventbox :cursor "pointer" :onclick "i3-msg -q workspace number ${w.num}"
+          (box :class "ws-dot ws-${w.state}" :valign "center"))))
+    (label :class "mode" :visible {d.mode != "default"} :text {d.mode})))
+
+;; a saved alternative animation, Slide: swap (ws-row :d wsdata) below for (ws-row-slide :d wsdata)
+(include "./droplet-slide.yuck")
 
 (defwidget leftbar-w []
   (box :class "leftbar" :space-evenly false :spacing 15 :halign "start" :valign "center"
-    (box :class "pill ws" :space-evenly false :spacing 0
-      (for w in {wsdata.ws} (ws-dot :w w))
-      (label :class "mode" :visible {wsdata.mode != "default"} :text {wsdata.mode}))
+    (ws-row :d wsdata)
     (eventbox :cursor "pointer" :timeout "5s" :onclick "scripts/toggle agents"
       (box :class "pill agents" :space-evenly false :spacing 18
         (label :class "ag blocked" :visible {agentcount.blocked > 0} :text " ${agentcount.blocked}")

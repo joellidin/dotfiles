@@ -1,0 +1,24 @@
+// Saved alternative workspace animation "Slide" (see droplet-slide.yuck). Every rule is scoped to the Slide row
+// (.slide, .glide), so nothing here applies while the Morph row (ws-row) is in use.
+$ease: cubic-bezier(0.4, 0, 0.2, 1);
+// slide
+$S: 44px;                                   // slot pitch: 20 px dot + 12 px each side
+.pill.ws.slide { padding: 0 11px; }
+.slide .slots { padding: 0 11px; }          // same outer look, but room inside the overlay for the stretch
+.slide .ws-dot { margin: 0 12px; transition: all 200ms $ease; }
+.slide .slots .ws-dot.ws-focused { min-width: 13px; min-height: 14px; padding-right: 1px; opacity: 0; }   // hidden under the pill
+.slide .ws-dot.ws-gone { margin: 0; }
+.glide { min-width: 60px; transition: margin-left 300ms cubic-bezier(0.65, 0, 0.35, 1), opacity 150ms; }
+.glide { opacity: 0; }                     // no focused slot in 1..10 (urgent, or above 10)
+.glide-pill { min-width: 32px; min-height: 13px; border: 3px solid $accent; border-radius: 10px;
+              background-color: $accent; }
+@for $i from 0 through 9 {
+  .glide.at-#{$i} { margin-left: 3px + $i * $S; opacity: 1; }
+  @keyframes squash-#{$i} {
+    0%   { min-width: 32px; min-height: 13px; }
+    45%  { min-width: 48px; min-height: 14px; }
+    100% { min-width: 32px; min-height: 13px; }
+  }
+  .glide.at-#{$i} .glide-pill { animation: squash-#{$i} 300ms cubic-bezier(0.45, 0, 0.55, 1); }
+}
+.slide .ws-dot.ws-gone { transition: all 200ms cubic-bezier(0.4, 0, 1, 1); }
