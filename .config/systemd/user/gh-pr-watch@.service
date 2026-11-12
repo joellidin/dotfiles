@@ -1,0 +1,7 @@
+[Unit]
+Description=Check GitHub PR %I and notify when it is merged or closed
+
+[Service]
+Type=oneshot
+# %I is owner:repo:number (':' instead of '/', since unit names cannot contain '/')
+ExecStart=%h/.local/bin/gh-pr-watch %I

@@ -1,0 +1,29 @@
+#!/bin/sh
+# gh-pr-watch <owner/repo> <number> [--once]
+# Check a GitHub PR once and notify (dunst) when it is merged or closed. Run by the
+# gh-pr-watch@<owner>:<repo>:<number>.timer user unit, which this script disables after notifying.
+#   --once   check and notify, but leave the timer alone (for testing)
+set -eu
+# accepts `owner/repo number` or the timer's instance name `owner:repo:number`
+case ${1:-} in
+  *:*:*) IFS=: read -r o r n <<EOF
+$1
+EOF
+        repo="$o/$r"; num=$n; once=${2:-} ;;
+  *) repo=$1; num=$2; once=${3:-} ;;
+esac
+gh="$HOME/.local/share/mise/shims/gh"; [ -x "$gh" ] || gh=gh
+info=$("$gh" pr view "$num" --repo "$repo" --json state,mergedAt,title --jq '"\(.state)\t\(.mergedAt // "")\t\(.title)"') || {
+  echo "gh-pr-watch: could not query $repo#$num (offline?), will retry" >&2; exit 0; }
+state=$(printf '%s' "$info" | cut -f1); title=$(printf '%s' "$info" | cut -f3-)
+echo "gh-pr-watch: $repo#$num is $state"
+case $state in
+  MERGED) msg="Merged: $title" ;;
+  CLOSED) msg="Closed without merging: $title" ;;
+  *) exit 0 ;;
+esac
+notify-send -u critical -a gh-pr-watch "$repo#$num" "$msg
+https://github.com/$repo/pull/$num" || true
+[ "$once" = --once ] && exit 0
+unit="gh-pr-watch@$(printf '%s' "$repo" | tr / :):$num.timer"
+systemctl --user disable --now "$unit" 2>/dev/null || true
