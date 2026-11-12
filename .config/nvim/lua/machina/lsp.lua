@@ -1,19 +1,14 @@
 -- LSP keymaps applied when a language server attaches to a buffer
 -- We override some Neovim 0.11+ defaults to keep familiar bindings
 local function on_attach(_, bufnr)
-  local function map(mode, lhs, rhs, desc)
-    vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, desc = desc })
+  local function map(mode, lhs, rhs, desc, opts)
+    vim.keymap.set(mode, lhs, rhs, vim.tbl_extend("force", { buffer = bufnr, desc = desc }, opts or {}))
   end
 
   map("n", "gD", vim.lsp.buf.declaration, "Go to declaration")
   map("n", "gd", vim.lsp.buf.definition, "Go to definition")
-  map("n", "K", function()
-    vim.lsp.buf.hover { border = "rounded" }
-  end, "Hover")
   map("n", "gi", vim.lsp.buf.implementation, "Go to implementation")
-  map("n", "<C-k>", function()
-    vim.lsp.buf.signature_help { border = "rounded" }
-  end, "Signature help")
+  map("n", "<C-k>", vim.lsp.buf.signature_help, "Signature help")
   map("n", "<leader>wa", vim.lsp.buf.add_workspace_folder, "Add workspace folder")
   map("n", "<leader>wr", vim.lsp.buf.remove_workspace_folder, "Remove workspace folder")
   map("n", "<leader>wl", function()
@@ -22,20 +17,12 @@ local function on_attach(_, bufnr)
   map("n", "<leader>D", vim.lsp.buf.type_definition, "Type definition")
   map("n", "<leader>rn", vim.lsp.buf.rename, "Rename symbol")
   map("n", "<leader>ca", vim.lsp.buf.code_action, "Code action")
-  map("n", "gr", vim.lsp.buf.references, "References")
+  -- nowait: `gr` shares a prefix with the built-in grr/grn/gra/gri/grt, so it would wait 'timeoutlen' first
+  -- (rename, code action and implementation are on <leader>rn, <leader>ca and gi)
+  map("n", "gr", vim.lsp.buf.references, "References", { nowait = true })
   map("n", "<leader>e", function()
     vim.diagnostic.open_float { source = true }
   end, "Show diagnostics")
-  -- `float = true` is deprecated in Neovim 0.12+; `on_jump` opens the float instead.
-  local function show_float(_, buf)
-    vim.diagnostic.open_float { bufnr = buf, scope = "cursor", focus = false }
-  end
-  map("n", "[d", function()
-    vim.diagnostic.jump { count = -1, on_jump = show_float }
-  end, "Prev diagnostic")
-  map("n", "]d", function()
-    vim.diagnostic.jump { count = 1, on_jump = show_float }
-  end, "Next diagnostic")
   map("n", "<leader>q", vim.diagnostic.setloclist, "Diagnostics to loclist")
 
   -- Inlay hints
@@ -64,6 +51,12 @@ vim.diagnostic.config {
   },
   virtual_text = true,
   virtual_lines = false,
+  -- the built-in [d / ]d show the diagnostic in a float after jumping (`float = true` is deprecated in 0.12+)
+  jump = {
+    on_jump = function(_, buf)
+      vim.diagnostic.open_float { bufnr = buf, scope = "cursor", focus = false }
+    end,
+  },
 }
 
 -- Toggle between virtual_text and virtual_lines diagnostics

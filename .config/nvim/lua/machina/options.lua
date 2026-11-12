@@ -11,6 +11,9 @@ opt.pumblend = 17
 
 opt.wildoptions = "pum"
 
+-- Rounded borders on every floating window by default (LSP hover, signature help, diagnostics)
+opt.winborder = "rounded"
+
 -- General
 opt.showcmd = false
 opt.showmode = false
