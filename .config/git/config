@@ -74,4 +74,4 @@
 [rerere]
 	enabled = true
 [credential "https://git.overleaf.com"]
-	helper = store --file ~/.config/git/credentials
+	helper = libsecret
