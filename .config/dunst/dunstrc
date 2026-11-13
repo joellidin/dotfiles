@@ -25,11 +25,15 @@
     # dynamic width from 0 to 300
     # width = (0, 300)
     # constant width of 300
-    width = (100, 300)
+    # Card look shared with the rofi menus and eww popups (eww.scss .popup). Sizes are screen pixels (scale = 1).
+    # dunst draws the card 6 px wider than this (3 x frame_width): 598 gives the quick settings popup's 604 px.
+    # Colours live in dunstrc.d/50-theme.conf, generated from xrdb by ~/.config/dunst/gen-colors on every
+    # dark/light switch. Test: sh ~/.claude/plans/test-dunst.sh
+    width = 598
 
     # The height of a single notification, excluding the frame.
     # dynamic height from 0 to 300
-    height = (0, 300)
+    height = (0, 600)
     # constant height of 300
     # height = 300
     # NOTE: Dunst from version 1.11 and older don't support dynamic height
@@ -41,11 +45,13 @@
     # Offset from the origin
     # NOTE: Dunst from version 1.11 and older use this alternative notation
     # offset = 10x50
-    offset = (5, 15)
+    # 10 px from the right and 66 px from the top: under polybar, where the eww popups open
+    offset = (10, 66)
 
     # Scale factor. It is auto-detected if value is 0.
-	# NOTE: The screenshot was made with scale = 2
-    scale = 2
+    # 1, with every size in screen pixels: at scale 2 dunst looked icons up at half size and doubled the bitmap,
+    # so they came out blurry. Text size follows Xft.dpi either way.
+    scale = 1
 
     # Maximum number of notification (0 means no limit)
     notification_limit = 10
@@ -58,26 +64,28 @@
 
     # Set the progress bar height. This includes the frame, so make sure
     # it's at least twice as big as the frame width.
-    progress_bar_height = 14
+    # A 12 px pill like the eww sliders; the frame (in the card's frame colour) outlines the empty track,
+    # since dunst fills the empty part with the card background
+    progress_bar_height = 12
 
     # Set the frame width of the progress bar
-    progress_bar_frame_width = 0
+    progress_bar_frame_width = 2
 
     # Set the minimum width for the progress bar
-    progress_bar_min_width = 100
+    progress_bar_min_width = 200
 
     # Set the maximum width for the progress bar
-    progress_bar_max_width = 300
+    progress_bar_max_width = 600
 
     # Corner radius for the progress bar. 0 disables rounded corners.
-    progress_bar_corner_radius = 50
+    progress_bar_corner_radius = 6
 
     # Define which corners to round when drawing the progress bar. If progress_bar_corner_radius
     # is set to 0 this option will be ignored.
-	progress_bar_corners = bottom-left, top-right
+    progress_bar_corners = all
 
     # Corner radius for the icon image.
-    icon_corner_radius = 0
+    icon_corner_radius = 12
 
     # Define which corners to round when drawing the icon image. If icon_corner_radius
     # is set to 0 this option will be ignored.
@@ -99,26 +107,25 @@
     separator_height = 6
 
     # Padding between text and separator.
-    padding = 10
+    # 24 and 28 px, as in the eww popups
+    padding = 24
 
     # Horizontal padding.
-    horizontal_padding = 8
+    horizontal_padding = 28
 
     # Padding between text and icon.
-    text_icon_padding = 12
+    text_icon_padding = 16
 
     # Defines width in pixels of frame around the notification window.
     # Set to 0 to disable.
-    frame_width = 1
-
-    # Defines color of the frame around the notification window.
-    frame_color = "#a0a0a0"
+    frame_width = 2
 
     # Size of gap to display between notifications - requires a compositor.
     # If value is greater than 0, separator_height will be ignored and a border
     # of size frame_width will be drawn around each notification instead.
     # Click events on gaps do not currently propagate to applications below.
-    gap_size = 6
+    # 12 px, the same gap as between polybar and the eww popups
+    gap_size = 12
 
     # Define a color for the separator.
     # possible values are:
@@ -145,7 +152,7 @@
 
     ### Text ###
 
-    font = JetBrainsMono Nerd Font 12
+    font = JetBrainsMono Nerd Font 11
 
     # The spacing between lines.  If the height is smaller than the
     # font height, it will get raised to the font height.
@@ -185,7 +192,9 @@
     #   %n  progress value if set without any extra characters
     #   %%  Literal %
     # Markup is allowed
-    format = "<b>%s</b>\n%b"
+    # Bold summary, body quieter at 70 % of the text colour (close to the palette's dim colour, base04). An alpha
+    # instead of a colour, because dunst formats a notice once: a colour here would not follow a reload.
+    format = "<b>%s</b>\n<span fgalpha='70%%'>%b</span>"
 
     # Alignment of message text.
     # Possible values are "left", "center" and "right".
@@ -228,15 +237,15 @@
     # icon_theme = "Adwaita, breeze"
 
     # Align icons left/right/top/off
-    icon_position = right
+    icon_position = left
 
     # Scale small icons up to this size, set to 0 to disable. Helpful
     # for e.g. small files or high-dpi screens. In case of conflict,
     # max_icon_size takes precedence over this.
-    min_icon_size = 32
+    min_icon_size = 64
 
     # Scale larger icons down to this size, set to 0 to disable
-    max_icon_size = 128
+    max_icon_size = 64
 
 
     ### History ###
@@ -270,14 +279,15 @@
     # corners.
     # The radius will be automatically lowered if it exceeds half of the
     # notification height to avoid clipping text and/or icons.
-    corner_radius = 10
+    # the eww popups' radius
+    corner_radius = 24
 
     # Define which corners to round when drawing the window. If the corner radius
     # is set to 0 this option will be ignored.
     #
     # Comma-separated list of the corners. The accepted corner values are bottom-right,
     # bottom-left, top-right, top-left, top, bottom, left, right or all.
-    corners = bottom, top-left
+    corners = all
 
     # Ignore the dbus closeNotification message.
     # Useful to enforce the timeout set by dunst configuration. Without this
@@ -337,31 +347,21 @@
     per_monitor_dpi = false
 
 
+# Colours (background, foreground, frame_color, highlight) for each urgency: dunstrc.d/50-theme.conf, written by
+# ~/.config/dunst/gen-colors. Low: dim text. Normal: the accent fills progress bars. Critical: the urgent colour
+# frames the card.
 [urgency_low]
-    # IMPORTANT: colors have to be defined in quotation marks.
-    # Otherwise the "#" and following would be interpreted as a comment.
-    background = "#222222"
-    foreground = "#ffffff"
-	highlight = "#722ae6, #e4b5cb"
     timeout = 20
     # Icon for notifications with low urgency
     #default_icon = dialog-information
 
 [urgency_normal]
-    background = "#222222"
-    foreground = "#ffffff"
-	frame_color = "#5e5086"
-	highlight = "#722ae6, #e4b5cb"
     timeout = 20
     override_pause_level = 30
     # Icon for notifications with normal urgency
     default_icon = dialog-information
 
 [urgency_critical]
-    background = "#222222"
-    foreground = "#ffffff"
-    frame_color = "#d54e53"
-	highlight = "#d54e53, #f0f0f0"
     timeout = 0
     override_pause_level = 60
     # Icon for notifications with critical urgency
@@ -494,4 +494,18 @@
 #    appname = "some_volume_notifiers"
 #    set_stack_tag = "volume"
 #
+
+# YubiKey touch prompts from ~/.local/bin/ssh-askpass-rofi: shown while the key waits for a touch, then closed by
+# the script, so they would fill the history
+[yubikey-touch]
+    appname = "ssh"
+    summary = "Touch your YubiKey"
+    history_ignore = yes
+
+# Summary-only notices: without this the format above leaves an empty line under the summary (dunst trims
+# trailing whitespace, but the closing </span> follows the newline)
+[no-body]
+    body = ""
+    format = "<b>%s</b>"
+
 # vim: ft=cfg

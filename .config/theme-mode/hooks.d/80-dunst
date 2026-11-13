@@ -1,14 +1,14 @@
 #!/usr/bin/sh
-# Point dunst's drop-in at the colour file for $1 (dark|light) and restart dunst.
-# (dunst 1.9.2 does not rescan dunstrc.d on `dunstctl reload`, so a restart is needed.)
+# dunst colours for $1 (dark|light): regenerate dunstrc.d/50-theme.conf from the X resources that 70-i3 has just
+# merged, then reload the running dunst in place. dunst 1.12 rescans dunstrc.d on reload and recolours the notices on
+# screen and in history; the process and its history stay. Test: sh ~/.claude/plans/test-dunst.sh
 cfg="${XDG_CONFIG_HOME:-$HOME/.config}/dunst"
-[ -r "$cfg/themes/$1.conf" ] || exit 0
-mkdir -p "$cfg/dunstrc.d"
-ln -sfn "../themes/$1.conf" "$cfg/dunstrc.d/50-theme.conf"
-if command -v dunst >/dev/null 2>&1; then
-  pkill -x dunst; sleep 0.3
-  # Start through dunst's own systemd unit so it runs in its own cgroup: started from this hook it would
-  # sit in darkman.service's cgroup and die whenever darkman restarts. Fallback: a plain detached start.
-  systemctl --user start dunst.service 2>/dev/null || setsid -f dunst >/dev/null 2>&1
-fi
+"$cfg/gen-colors" || exit 0
+# not running: nothing to reload, the next notification starts dunst (D-Bus activation) with the new file
+dbus-send --session --print-reply=literal --dest=org.freedesktop.DBus /org/freedesktop/DBus \
+  org.freedesktop.DBus.NameHasOwner string:org.freedesktop.Notifications 2>/dev/null | grep -q true || exit 0
+# reload resets the pause level to 0, which would turn off do-not-disturb (eww scripts/dnd: level 50); restore it
+level=$(dunstctl get-pause-level 2>/dev/null)
+dunstctl reload
+case "$level" in ''|*[!0-9]*|0) ;; *) dunstctl set-pause-level "$level" ;; esac
 exit 0
