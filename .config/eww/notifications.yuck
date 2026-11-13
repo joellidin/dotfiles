@@ -1,0 +1,78 @@
+;; ---------- notification center ----------
+;; A bell pill in the leftbar (the number of notifications in dunst's history; a crossed bell while do not disturb
+;; is on) opens a card with that history, newest first. scripts/notifications feeds both through one deflisten that
+;; wakes on dunst's D-Bus signals and re-reads the history (no polling). The leftbar is always open, so the listener
+;; always runs. In the card:
+;; - a click on a row shows that notification again (dunst moves it out of the history until it closes; under do not
+;;   disturb a normal one waits, the card counts it as held), its x drops it, Clear all drops them all
+;; - the switch is scripts/dnd (pause level 50), the same state as the quick settings' "No alerts" toggle
+;; - ages ("4 min") come from EWW_TIME, which eww only ticks while the card is open
+;; - rows have one fixed height and the list scrolls past 6 of them (dunst keeps up to history_length = 30), so the
+;;   heading carries the count; the window is not resizable, so GTK fits it to the list as rows come and go (a
+;;   resizable one only grows, and sat ~60 px taller than its content)
+;; Notification text never reaches a command line: the handlers only interpolate the numeric id.
+
+(defvar notify_open false)
+(deflisten notifs :initial '{"ok":false,"count":0,"dnd":false,"held":0,"items":[]}' "scripts/notifications listen")
+
+(defwidget notify-pill []
+  (eventbox :cursor "pointer" :timeout "5s" :onclick "scripts/toggle notify"
+    (box :class "pill notify ${notifs.dnd ? 'dnd' : ''} ${notifs.count > 0 ? 'some' : ''}" :space-evenly false
+         :spacing 12
+      (label :class "bell" :text {notifs.dnd ? "" : notifs.count > 0 ? "" : ""})
+      (label :class "ncount" :visible {notifs.count > 0} :text {notifs.count}))))
+
+;; "now", "4 min", "2 h", "3 d" since t (Unix time)
+(defwidget notif-age [t]
+  (label :class "nage" :halign "start" :xalign 0
+         :text {EWW_TIME - t < 60 ? "now"
+               : EWW_TIME - t < 3600 ? "${floor((EWW_TIME - t) / 60)} min"
+               : EWW_TIME - t < 86400 ? "${floor((EWW_TIME - t) / 3600)} h"
+               : "${floor((EWW_TIME - t) / 86400)} d"}))
+
+;; The outer eventbox has no command: it only lets the whole row (the x included) take the :hover style. The x is a
+;; sibling of the clickable part, not inside it, so removing never also re-shows.
+(defwidget notif-row [n]
+  (eventbox
+    (box :class "notif ${n.urg}" :space-evenly false
+      (eventbox :cursor "pointer" :hexpand true :timeout "5s" :onclick "scripts/notifications pop ${n.id}"
+        (box :class "nmain" :space-evenly false :spacing 16
+          (box :class "status-bar" :orientation "v" (label :text ""))
+          (box :orientation "v" :hexpand true :space-evenly false :spacing 2
+            (box :space-evenly false :spacing 10
+              (label :class "napp" :halign "start" :xalign 0 :limit-width 24 :text {n.app != "" ? n.app : "notification"})
+              (notif-age :t {n.t}))
+            (label :class "nsum" :halign "start" :xalign 0 :limit-width 34 :text {n.summary})
+            (label :class "nbody" :halign "start" :xalign 0 :limit-width 44 :text {n.body}))))
+      (button :class "nrm" :valign "start" :timeout "5s" :tooltip "Remove"
+              :onclick "scripts/notifications rm ${n.id}" ""))))
+
+(defwidget notify-w []
+  (box :class "popup notify" :orientation "v" :space-evenly false :spacing 12
+    (box :class "head" :space-evenly false :spacing 10
+      (box :hexpand true :space-evenly false :spacing 12
+        (label :class "heading" :halign "start" :xalign 0 :text "Notifications")
+        (label :class "nhcount" :valign "center" :visible {notifs.count > 0} :text {notifs.count}))
+      (button :class "small nclear" :visible {notifs.count > 0} :timeout "5s" :onclick "scripts/notifications clear"
+              "Clear all")
+      (close-btn))
+    (eventbox :cursor "pointer" :timeout "5s" :onclick "scripts/dnd toggle"
+      (box :class "dnd-row ${notifs.dnd ? 'on' : ''}" :space-evenly false :spacing 16
+        (label :class "dnd-icon" :text {notifs.dnd ? "" : ""})
+        (box :orientation "v" :hexpand true :space-evenly false
+          (label :class "dnd-title" :halign "start" :xalign 0 :text "Do not disturb")
+          (label :class "dnd-sub" :halign "start" :xalign 0
+                 :text {!notifs.dnd ? "Off"
+                       : notifs.held > 0 ? "On, ${notifs.held} held until it is off"
+                       : "On, only critical ones pop up"}))
+        (box :class "switch" :valign "center" :space-evenly false
+          (box :class "knob" :halign "start"))))
+    (label :class "empty" :visible {notifs.count == 0}
+           :text {notifs.ok ? "No notifications" : "dunst is not answering"})
+    (scroll :vscroll true :hscroll false :visible {notifs.count > 0} :height {max(min(notifs.count, 6) * 112 - 8, 0)}
+      (box :orientation "v" :space-evenly false :spacing 8
+        (for n in {notifs.items} (notif-row :n n))))))
+
+(defwindow notify :monitor 0 :stacking "fg" :windowtype "dialog" :wm-ignore true :resizable false
+  :geometry (geometry :x "10px" :y "66px" :width "600px" :anchor "top left")
+  (notify-w))

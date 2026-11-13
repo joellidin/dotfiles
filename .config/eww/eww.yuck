@@ -61,6 +61,9 @@
 ;; a saved alternative animation, Slide: swap (ws-row :d wsdata) below for (ws-row-slide :d wsdata)
 (include "./droplet-slide.yuck")
 
+;; the notification center: the bell pill (notify-pill, in the leftbar below) and its card
+(include "./notifications.yuck")
+
 (defwidget leftbar-w []
   (box :class "leftbar" :space-evenly false :spacing 15 :halign "start" :valign "center"
     (ws-row :d wsdata)
@@ -70,6 +73,7 @@
         (label :class "ag done"    :visible {agentcount.done > 0}    :text " ${agentcount.done}")
         (label :class "ag working" :visible {agentcount.working > 0} :text " ${agentcount.working}")
         (label :class "ag none"    :visible {agentcount.blocked + agentcount.done + agentcount.working == 0} :text "")))
+    (notify-pill)
     (eventbox :cursor "pointer" :timeout "5s" :onclick "scripts/kbd cycle"
       (box :class "pill kbd" (label :class "flag" :text kbd)))))
 

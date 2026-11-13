@@ -1,0 +1,46 @@
+// notification center (notifications.yuck): the bell pill in the leftbar and the history card. It reuses the popup
+// card (.popup: 24 px radius, $base02 border), the agents rows' look (tinted row, 7 px status bar) and the accent for
+// "on". A label needs its own colour and size: the `*` rule in eww.scss would win over inheritance.
+
+// pill: an outlined bell while the history is empty, a bell and the count otherwise, the crossed bell in the accent
+// while do not disturb is on
+.pill.notify { padding: 0 20px; }
+.pill.notify .bell { font-size: 21px; color: $base03; }
+.pill.notify.some .bell { color: $fg; }
+.pill.notify.dnd .bell { color: $accent; }
+.pill.notify .ncount { font-size: 19px; }
+
+.popup.notify { min-width: 544px; }
+.nhcount { font-size: 15px; color: $base04; background-color: $base02; border-radius: 10px; padding: 1px 10px; }
+.nclear, .nclear * { font-size: 16px; }
+
+// do not disturb: a row with a switch; the knob slides like the workspace pill morphs
+.dnd-row { padding: 12px 16px; border-radius: 18px; background-color: transparentize($base02, 0.55); }
+.dnd-row:hover { background-color: $base02; }
+.dnd-icon { font-size: 22px; color: $base04; min-width: 30px; }
+.dnd-row.on .dnd-icon { color: $accent; }
+.dnd-title { font-size: 18px; }
+.dnd-sub { font-size: 14px; color: $base04; }
+.switch { min-width: 40px; padding: 3px; border-radius: 13px; background-color: $base03;
+          transition: background-color 180ms ease; }
+.switch .knob { min-width: 20px; min-height: 20px; border-radius: 10px; background-color: $bg; margin-left: 0;
+                transition: margin-left 180ms cubic-bezier(0.4, 0, 0.2, 1); }
+.dnd-row.on .switch { background-color: $accent; }
+.dnd-row.on .switch .knob { margin-left: 20px; }
+
+// history rows: one fixed height (the scroll height in notifications.yuck counts 104 + 8 spacing per row, less the
+// spacing after the last)
+.notif { border-radius: 18px; background-color: transparentize($base02, 0.55); min-height: 104px; }
+.notif:hover { background-color: $base02; }
+.nmain { padding: 12px 0 12px 16px; }
+.notif .status-bar { border-radius: 4px; min-width: 7px; background-color: $base03; }
+.notif.critical .status-bar { background-color: $red; }
+.notif.low .status-bar { background-color: transparentize($base03, 0.6); }
+.napp { font-size: 15px; font-weight: 600; color: $base04; }
+.nage { font-size: 14px; color: $base04; }
+.nsum { font-size: 18px; }
+.nbody { font-size: 15px; color: $base04; }
+.nrm, .nrm label { font-size: 16px; color: $base03; }
+.nrm { padding: 4px 10px; border-radius: 12px; margin: 10px 10px 0 0; }
+.nrm:hover { background-color: $base03; }
+.nrm:hover, .nrm:hover label { color: $red; }

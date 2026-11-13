@@ -1,6 +1,6 @@
 #!/bin/sh
-# Toggle an eww popup (calendar | agents | control | wifi) right under the mouse pointer. While a popup is open,
-# scripts/outside-watch closes it on any click outside it (it only listens; nothing covers the screen).
+# Toggle an eww popup (calendar | agents | control | wifi | notify) right under the mouse pointer. While a popup is
+# open, scripts/outside-watch closes it on any click outside it (it only listens; nothing covers the screen).
 # `toggle close-all` closes everything. If eww has lost track of a window it still shows on screen, the daemon
 # is restarted so nothing can stay stuck.
 eww=${EWW:-$HOME/.local/bin/eww}
@@ -12,15 +12,15 @@ heal() {
   # a moment after eww unlists it, so re-read for about 1.5 s and act only on orphans that stay.
   i=0
   while :; do
-    ghosts=$(xwininfo -root -children 2>/dev/null | grep -cE '"Eww - (calendar|agents|control|wifi|closer)"')
-    listed=$("$eww" active-windows 2>/dev/null | grep -cE '^(calendar|agents|control|wifi|closer):')
+    ghosts=$(xwininfo -root -children 2>/dev/null | grep -cE '"Eww - (calendar|agents|control|wifi|notify|closer)"')
+    listed=$("$eww" active-windows 2>/dev/null | grep -cE '^(calendar|agents|control|wifi|notify|closer):')
     [ "$ghosts" -gt "$listed" ] || return 0
     [ "$i" -ge 20 ] && break; i=$((i + 1)); sleep 0.05
   done
   # kill the eww processes that own popup windows (_NET_WM_PID), every eww if a popup has no such owner, and restart
   # the daemon only if it was one of them
   all=" $(pgrep -x eww | tr '\n' ' ')" own=
-  for id in $(xwininfo -root -children 2>/dev/null | awk '/"Eww - (calendar|agents|control|wifi|closer)"/ {print $1}'); do
+  for id in $(xwininfo -root -children 2>/dev/null | awk '/"Eww - (calendar|agents|control|wifi|notify|closer)"/ {print $1}'); do
     pid=$(xprop -id "$id" _NET_WM_PID 2>/dev/null | sed -n 's/^_NET_WM_PID(CARDINAL) = \([0-9]*\)$/\1/p')
     case "$all" in *" ${pid:-x} "*) own="$own $pid" ;; *) own=$all; break ;; esac
   done
@@ -31,8 +31,8 @@ heal() {
 }
 close_all() {
   [ -f "$pidfile" ] && kill "$(cat "$pidfile")" 2>/dev/null; rm -f "$pidfile"
-  "$eww" close calendar agents control wifi >/dev/null 2>&1
-  "$eww" update calendar_open=false agents_open=false control_open=false wifi_open=false mic_open=false agents_filter=all cal_sel= cal_more=false cal_month=false cal_mon=1 cal_day= >/dev/null 2>&1
+  "$eww" close calendar agents control wifi notify >/dev/null 2>&1
+  "$eww" update calendar_open=false agents_open=false control_open=false wifi_open=false notify_open=false mic_open=false agents_filter=all cal_sel= cal_more=false cal_month=false cal_mon=1 cal_day= >/dev/null 2>&1
   heal
 }
 w=$1
@@ -40,8 +40,8 @@ case "$w" in
   close-all|outside) close_all; exit 0 ;;
   calendar) width=480 ;;
   agents)   width=1060 ;;
-  wifi|control) width=610 ;;
-  *) echo "usage: toggle <calendar|agents|control|wifi|close-all>" >&2; exit 2 ;;
+  wifi|control|notify) width=610 ;;
+  *) echo "usage: toggle <calendar|agents|control|wifi|notify|close-all>" >&2; exit 2 ;;
 esac
 if "$eww" active-windows 2>/dev/null | grep -qE "^$w:"; then close_all; exit 0; fi
 close_all

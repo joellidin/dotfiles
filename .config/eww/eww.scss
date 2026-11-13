@@ -194,6 +194,9 @@ scale slider { background-color: $fg; border-radius: 50%; min-width: 22px; min-h
 .micicon { font-size: 16px; color: $base04; }
 .micname { font-size: 15px; color: $fg; }
 
+// the notification center's pill and card (notifications.yuck)
+@import "_notifications.scss";
+
 // the saved Slide animation's styles (droplet-slide.yuck); all scoped, unused while Morph is active. Kept last, as
 // when it was tried, so equal-specificity rules resolve the same way.
 @import "_droplet-slide.scss";
