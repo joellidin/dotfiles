@@ -1,4 +1,4 @@
 worktree-path = "{{ repo_path }}/../{{ branch }}"
 
-[projects."github.com/one-covenant/templar-basilica"]
+[projects."github.com/one-covenant/crucible"]
 worktree-path = "{{ repo_path }}/../{{ branch }}"
