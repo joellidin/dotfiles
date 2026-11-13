@@ -1,0 +1,49 @@
+// the top bar (bar.yuck). The left group reuses the leftbar's pills (.pill, .ws-dot, .ag, .flag in eww.scss). The
+// polybar-born pills (.pb: date, Wi-Fi, audio, system) copy polybar's metrics, measured on the live bar and checked
+// glyph by glyph by ~/.claude/plans/test-eww-bar.sh: text at 10 pt for 176 dpi = 24.444 px (digits 18 px tall, rows
+// 23-40), 22 px caps, one character of padding around each module, the battery glyph at 13 pt (31.778 px).
+// Characters: polybar advances ~13.9 px; GTK3 rounds the font's advance to 15, so letter-spacing -1px (GTK3 only takes
+// whole pixels). Colours are polybar's xrdb ones under their eww names: blue = $accent, aqua = $aqua, red = $red,
+// yellow = $yellow, dim = $base03, orange = $orange.
+.topbar { background-color: transparent; padding: 10px 10px 8px 10px; }
+
+.pill.pb { padding: 0 22px; }
+// the margins: as .pill label (eww.scss), one pixel lower, where polybar's font offset (;5) puts its text
+.pb label { font-size: 24.444px; color: $fg; letter-spacing: -1px; margin-top: -11px; margin-bottom: -13px; }
+.pb .pb-icon { color: $fg; }
+
+// date: two characters of padding before the icon (polybar format-padding 2); the label carries the two after
+.pill.pb.date { padding-left: 51.333px; }
+.pb.date .pb-icon { color: $accent; }
+.pb.date .dot { color: $base03; }
+.pb.date .next.soon .ev { color: $orange; }
+.pb.date .next.now .ev { color: $base03; }
+
+// Wi-Fi: one character of padding each side
+.pill.pb.wifi { padding: 0 36.667px; }
+// GTK draws the Wi-Fi glyph ~2 px narrower than polybar did: centre it on polybar's, text unmoved
+.pb.wifi .pb-icon { color: $accent; margin-left: 1px; margin-right: -1px; }
+.pb.wifi.connecting label { color: $yellow; }
+.pb.wifi.off label { color: $base03; }
+
+// modules inside a pill: one character of padding each side, as polybar's format-padding = 1
+.pb .seg { padding: 0 14.667px; }
+.pb .mic.muted label { color: $red; }
+.pb .vol .pb-icon { color: $aqua; }
+.pb .vol.muted label { color: $red; }
+// the recording dot is an emoji from /tmp/recordingicon; polybar draws it from Noto Color Emoji at scale=10
+.pb .rec-text { font-family: "Noto Color Emoji"; font-size: 27px; letter-spacing: 0; margin-top: -15px; margin-bottom: -9px; }
+
+// system pill: the bell as in the leftbar's bell pill (21 px glyph, 19 px count, its spacing and margins, not
+// polybar's), battery glyph from Symbols Nerd Font
+.pb .bell label { letter-spacing: 0; margin-top: -12px; margin-bottom: -12px; }
+.pb .bell .bell-g { font-size: 21px; color: $base03; }
+.pb .bell.some .bell-g { color: $fg; }
+.pb .bell.dnd .bell-g { color: $accent; }
+.pb .bell .ncount { font-size: 19px; }
+.pb .bat-icon { font-family: "Symbols Nerd Font"; font-size: 31.778px; color: $fg; }
+.pb .bat-icon.ac { color: $aqua; }
+.pb .bat-icon.low { color: $red; }
+.pb .power .pb-icon { color: $red; }
+// tray: polybar's tray-size 60% (26 px icons), tray-padding 3pt and tray-spacing 2pt (7 px); an empty tray is 0 px
+.pb .tray image { margin: 0 7px; }

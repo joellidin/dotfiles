@@ -1,143 +1,50 @@
 #!/bin/sh
-# bar-control: keep the eww left bar off fullscreen windows, and hide or show both top bars.
-#   bar-control watch              follow i3 events (single instance, started by i3 with exec): the left bar is
-#                                  closed while a fullscreen window is visible or the bars are hidden, else open
-#   bar-control sync               apply that rule once (polybar-launch runs it instead of "eww open leftbar")
-#   bar-control toggle             hide or show polybar and the left bar ($mod+b); the flag file keeps them
-#                                  hidden through fullscreen changes and polybar restarts
-#   bar-control fullscreen-toggle  $mod+f: into fullscreen only after the bar has faded out, out of fullscreen
-#                                  first and then the bar back; the watcher covers apps going fullscreen
-# The top bar is two windows: polybar, an i3 dock that i3 already hides in fullscreen, and eww's leftbar,
-# which is override-redirect (:wm-ignore true) and always on top, so i3 cannot cover it; it has to be closed.
+# bar-control: show or hide the top bar, the eww window `bar` (~/.config/eww/bar.yuck).
+#   bar-control sync               open the bar unless it is hidden with $mod+b (bar-launch runs this). Waits up to
+#                                  5 s for a daemon that is still starting, and never starts one itself
+#   bar-control toggle             hide or show the bar ($mod+b); the flag file keeps it hidden through theme switches
+#                                  and bar-launch
+#   bar-control fullscreen-toggle  $mod+f: i3's fullscreen toggle (the binding keeps calling this)
+#   bar-control watch              nothing left to watch: exits at once (for an i3 config that still starts it)
+# The bar is an i3 dock with struts, as polybar was: i3 reserves the strip and a fullscreen window covers the bar, so
+# nothing has to close it for fullscreen any more (the old eww leftbar was override-redirect and always on top).
 eww="$HOME/.local/bin/eww"
 run="${XDG_RUNTIME_DIR:-/tmp}"
-flag="$run/bar-hidden"        # exists while the bars are hidden by toggle
-lock="$run/bar-control.lock"  # held (fd 8) by toggle, sync and each watcher sync, so they never interleave
-# picom fades the bar in 70 ms (its own rule in ~/.config/picom/picom.conf; measured 75-83 ms at 120 fps).
-# fullscreen-toggle waits this long so the fade ends before the window goes fullscreen.
-fade=0.08
+flag="$run/bar-hidden"        # exists while the bar is hidden by toggle
+lock="$run/bar-control.lock"  # held (fd 8) by toggle and sync, so they never interleave
 export DISPLAY="${DISPLAY:-:0}"
 nl='
 '
 
-# One long-running jq turns each i3 event into a word for the read loop, or nothing for events that cannot
-# change whether a fullscreen window is visible (titles, marks, window focus, urgency, renames):
-#   close  a fullscreen window is certainly visible: a focused window went fullscreen (focused means it is
-#          on the focused, so visible, workspace), anything went global fullscreen, or the newly focused
-#          workspace holds a fullscreen window. Decided from the event alone, no queries.
-#   sync   anything else that may matter (leaving fullscreen, closing, moving, other outputs): full check
-#   first  i3's tick right after subscribing: initial full check
-# A workspace's own fullscreen_mode does not count: i3 marks each output's visible workspace with 1.
-classify='
-def fs_inside: any((.nodes[]?, .floating_nodes[]?) | recurse(.nodes[]?, .floating_nodes[]?);
-                   .fullscreen_mode > 0);
-if has("first") then (if .first then "first" else "sync" end)
-elif has("container") then
-  if .change == "fullscreen_mode" and (.container.fullscreen_mode == 2
-       or (.container.fullscreen_mode == 1 and .container.focused)) then "close"
-  elif .change | IN("fullscreen_mode", "new", "close", "move", "floating") then "sync"
-  else empty end
-elif has("current") then
-  if .change == "focus" and (.current | fs_inside) then "close"
-  elif .change | IN("focus", "init", "empty", "move", "reload", "restored") then "sync"
-  else empty end
-else "sync" end'
-
-# exit 0 when a fullscreen window is visible: fullscreen_mode 1 below a visible workspace, or 2 (global)
-# anywhere
-fullscreen_visible() {
-  ws=$(i3-msg -t get_workspaces 2>/dev/null) || return 1
-  i3-msg -t get_tree 2>/dev/null | jq -e --argjson ws "$ws" '
-    [$ws[] | select(.visible) | .id] as $vis
-    | any(recurse(.nodes[]?, .floating_nodes[]?);
-        .fullscreen_mode == 2
-        or (.type == "workspace" and (.id | IN($vis[]))
-            and any((.nodes[]?, .floating_nodes[]?) | recurse(.nodes[]?, .floating_nodes[]?);
-                    .fullscreen_mode == 1)))' >/dev/null
-}
-
 # run "$@" holding the lock; call as: locked cmd 8>"$lock"
 locked() { flock -w 10 8 || return 1; "$@"; }
 
-# Open or close the left bar to match the rule, calling "eww open/close" only when its state differs.
-# The state is read from eww every time, so changes made elsewhere are noticed. With $1 = wait a starting
-# daemon gets 5 s; otherwise a missing daemon means do nothing. This never starts a daemon (a plain
-# "eww open" would, in the caller's cgroup), and eww never inherits the lock fds.
+# Open or close the bar to match the flag, calling "eww open/close" only when its state differs. The state is read
+# from eww every time, so changes made elsewhere are noticed. With $1 = wait a starting daemon gets 5 s; otherwise a
+# missing daemon means do nothing. This never starts a daemon (a plain "eww open" would, in the caller's cgroup), and
+# eww never inherits the lock fd. The old leftbar, if anything still opened it, is closed.
 sync_once() {
   n=0  # without a daemon each call fails after 1 s (eww retries the socket), so 5 calls is about 5 s
-  until aw=$("$eww" active-windows 2>/dev/null 8>&- 9>&-); do
+  until aw=$("$eww" active-windows 2>/dev/null 8>&-); do
     [ "$1" = wait ] && [ $n -lt 4 ] || return 1
     n=$((n + 1))
   done
-  case "$nl$aw" in *"${nl}leftbar:"*) is=open ;; *) is=closed ;; esac
-  if [ -e "$flag" ] || fullscreen_visible; then want=closed; else want=open; fi
+  case "$nl$aw" in *"${nl}leftbar:"*) "$eww" close leftbar >/dev/null 2>&1 8>&- ;; esac
+  case "$nl$aw" in *"${nl}bar:"*) is=open ;; *) is=closed ;; esac
+  if [ -e "$flag" ]; then want=closed; else want=open; fi
   [ "$is" = "$want" ] && return 0
-  if [ "$want" = open ]; then "$eww" open leftbar; else "$eww" close leftbar; fi >/dev/null 2>&1 8>&- 9>&-
-}
-
-# the fast path: one eww call, no state check (closing a closed bar is a harmless no-op that fails with 1).
-# Exit 0 only when it really closed an open bar. $1 = timeout for $mod+f: with the daemon down eww needs
-# 1 s to give up, and the keypress must not wait for that.
-close_now() {
-  if [ -n "$1" ]; then timeout "$1" "$eww" close leftbar; else "$eww" close leftbar; fi >/dev/null 2>&1 8>&- 9>&-
+  if [ "$want" = open ]; then "$eww" open bar; else "$eww" close bar; fi >/dev/null 2>&1 8>&-
 }
 
 toggle() {
-  if [ -e "$flag" ]; then rm -f "$flag"; act=show; else : >"$flag"; act=hide; fi
-  polybar-msg cmd "$act" >/dev/null 2>&1
+  if [ -e "$flag" ]; then rm -f "$flag"; else : >"$flag"; fi
   sync_once wait
 }
 
-fullscreen_toggle() {
-  # entering fullscreen = the focused node is a window or container that is not fullscreen yet
-  # (a focused empty workspace cannot go fullscreen, so the bar is left alone then)
-  case "$(i3-msg -t get_tree 2>/dev/null | jq -r '
-           [recurse(.nodes[]?, .floating_nodes[]?) | select(.focused)][0] | "\(.type) \(.fullscreen_mode)"')" in
-    "con 0") close_now 0.5 && sleep "$fade" ;;
-  esac
-  i3-msg -q fullscreen toggle
-  sync_once now  # reopens the bar after leaving fullscreen, and if the fullscreen did not happen
-}
-
-# one i3 subscription, run in its own process group by watch; ends when i3 exits or restarts
-events() {
-  i3-msg -t subscribe -m '["window","workspace","output","tick"]' 2>/dev/null |
-    jq --unbuffered -r "$classify" 2>/dev/null |
-    while IFS= read -r ev; do
-      case "$ev" in
-        close) locked close_now 8>"$lock" ;;
-        first) locked sync_once wait 8>"$lock" ;;  # once the subscription is live, so no event slips past
-        *) locked sync_once now 8>"$lock" ;;
-      esac
-    done
-}
-
-watch() {
-  exec 9>"$run/bar-control.watch.lock"  # only this process holds it: children get 9>&-
-  flock -n 9 || { echo "bar-control: a watcher is already running" >&2; exit 0; }
-  pg=
-  trap '[ -n "$pg" ] && kill -- "-$pg" 2>/dev/null' EXIT
-  trap 'exit 0' INT TERM HUP
-  n=0
-  while [ $n -lt 20 ]; do  # reconnect after an i3 restart; 10 s without i3 means the session is gone
-    if i3-msg -t get_version >/dev/null 2>&1 9>&-; then
-      # own process group (setsid execs in place here), so the EXIT trap stops the whole pipeline;
-      # a background job plus wait, because a trap would not run until a foreground pipeline ended
-      setsid "$0" _events 9>&- &
-      pg=$!
-      wait "$pg"
-      n=0
-    fi
-    n=$((n + 1)); sleep 0.5
-  done
-}
-
 case "$1" in
-  watch) watch ;;
   sync) locked sync_once wait 8>"$lock" ;;
   toggle) locked toggle 8>"$lock" ;;
-  # $mod+f must work even if the lock is busy (a sync waiting for the eww daemon): wait 0.3 s at most
-  fullscreen-toggle) { flock -w 0.3 8; fullscreen_toggle; } 8>"$lock" ;;
-  _events) events ;;
-  *) echo "usage: bar-control watch|sync|toggle|fullscreen-toggle" >&2; exit 2 ;;
+  fullscreen-toggle) i3-msg -q fullscreen toggle ;;
+  watch) exit 0 ;;
+  *) echo "usage: bar-control sync|toggle|fullscreen-toggle" >&2; exit 2 ;;
 esac

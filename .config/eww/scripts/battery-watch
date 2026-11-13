@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# Battery for the bar (deflisten bat in bar.yuck), the quick-settings header (scripts/battery runs --json) and the
+# low-battery notice.
+#   (no args)  print {"percent","status","ac","time","icon"} now and again on every UPower event (plugging in or out
+#              shows at once), with a 60 s fallback; only changes are printed, and each is pushed into eww's `battery`
+#              (the quick-settings header)
+#   --json     print the object once
+#   --notify   no output: notify once at 10% on battery, as polybar's battery script did. One instance (a lock in
+#              $XDG_RUNTIME_DIR), started by i3 at login. Not part of the bar's listener, because eww stops that one
+#              while the bar is hidden with $mod+b, and the notice must still come
+# icon: a Material battery glyph from Symbols Nerd Font: on AC the battery carries the bolt (also at 100%), on battery
+# it shows the charge level. The bar colours it (aqua on AC, red at 15% and below). Ported from polybar's
+# scripts/battery, so the bar needs neither polybar nor its files.
+B=/sys/class/power_supply/BAT0; A=/sys/class/power_supply/AC
+CHG=($'\U000F089C' $'\U000F0086' $'\U000F0087' $'\U000F0088' $'\U000F089D' $'\U000F0089' $'\U000F089E' $'\U000F008A' $'\U000F008B' $'\U000F0085')
+DIS=($'\U000F007A' $'\U000F007B' $'\U000F007C' $'\U000F007D' $'\U000F007E' $'\U000F007F' $'\U000F0080' $'\U000F0081' $'\U000F0082' $'\U000F0079')
+flag="${XDG_RUNTIME_DIR:-/tmp}/battery-low-notified"
+eww=${EWW:-$HOME/.local/bin/eww}
+
+read_state() {
+  cap=$(<"$B/capacity"); st=$(<"$B/status"); ac=$(<"$A/online")
+  now=$(<"$B/energy_now"); full=$(<"$B/energy_full"); pw=$(<"$B/power_now")
+  lvl=$(( (cap + 5) / 10 )); (( lvl < 1 )) && lvl=1; (( lvl > 10 )) && lvl=10
+  if [[ $ac == 1 ]]; then icon=${CHG[lvl-1]}; else icon=${DIS[lvl-1]}; fi
+  time=""
+  if (( pw > 0 )); then
+    case $st in
+      Charging)    secs=$(( (full - now) * 3600 / pw )) ;;
+      Discharging) secs=$(( now * 3600 / pw )) ;;
+      *)           secs=0 ;;
+    esac
+    # an if, not `(( secs > 0 )) && ...`: that would end read_state with status 1 whenever the time is 0 (charging
+    # at full, "Not charging")
+    if (( secs > 0 )); then time=$(printf '%d:%02d' $((secs / 3600)) $((secs % 3600 / 60))); fi
+  fi
+}
+
+json() { printf '{"percent":%s,"status":"%s","ac":%s,"time":"%s","icon":"%s"}\n' "$cap" "$st" "$([[ $ac == 1 ]] && echo true || echo false)" "$time" "$icon"; }
+
+if [[ $1 == --json ]]; then read_state; json; exit 0; fi
+
+if [[ $1 == --notify ]]; then
+  exec 9>"${XDG_RUNTIME_DIR:-/tmp}/battery-notify.lock"
+  flock -n 9 || exit 0   # one notifier per session
+  render() {
+    read_state
+    if [[ $ac == 1 ]]; then rm -f "$flag"
+    elif (( cap <= 10 )) && [[ ! -e $flag ]]; then
+      notify-send -u critical -i battery-caution "Battery low" "${cap}% left${time:+, about $time}. Plug in the charger." 2>/dev/null 9>&-
+      : > "$flag"
+    fi
+  }
+else
+  last=""
+  render() {
+    read_state
+    line=$(json)
+    if [[ $line != "$last" ]]; then
+      printf '%s\n' "$line"; last=$line
+      # time-limited: an eww call that lands while the daemon reloads can lose its reply and wait for ever
+      timeout 2 "$eww" update "battery=$line" >/dev/null 2>&1 &
+    fi
+  }
+fi
+
+render
+while :; do
+  upower --monitor 2>/dev/null 9>&- | while :; do
+    if read -r -t 60 _; then :; else (( $? > 128 )) || break; fi   # event or 60 s timeout -> render; EOF -> restart
+    render
+  done
+  sleep 5; render
+done

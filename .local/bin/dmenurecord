@@ -12,6 +12,9 @@
 updateicon() { \
 	echo "$1" > /tmp/recordingicon
         echo $STATUSBAR
+	# the eww bar's recording dot (~/.config/eww/bar.yuck), time-limited (an eww call that lands while the daemon
+	# reloads can lose its reply and wait for ever); polybar or i3blocks if one of those runs instead
+	timeout 2 "$HOME/.local/bin/eww" update "recording=$1" >/dev/null 2>&1
 	polybar-msg action recording hook 0 >/dev/null 2>&1 || pkill -RTMIN+9 "${STATUSBAR:-i3blocks}"
 	}
 

@@ -1,5 +1,5 @@
 #!/bin/sh
-# powermenu: lock, suspend, log out, reboot or shut down. Drops down under the polybar power button (top right,
+# powermenu: lock, suspend, log out, reboot or shut down. Drops down under the bar's power button (top right,
 # placed like the eww wifi and control popups) whether it is opened by a click or by $mod+Shift+Escape.
 # Log out, reboot and shut down ask once more, with Cancel preselected. Look: ~/.config/rofi/theme.rasi.
 dropdown='window { location: north east; anchor: north east; x-offset: -10px; y-offset: 66px; width: 600px; }

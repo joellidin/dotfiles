@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+"""pill-at X: print "X0 X1", the first and last screen column of the bar pill under screen column X (scripts/toggle
+centres a popup on it). Reads one row of the bar window's own pixels (XGetImage through libX11 with ctypes, so no
+Python packages): the pills are opaque and the gaps between them fully transparent. Exits 1 without the bar window,
+without an ARGB window (no compositor), or when X is not on a pill."""
+import ctypes, ctypes.util, subprocess, sys
+
+ROW = 31   # the pills' middle row in the bar window (they fill rows 10-53)
+try:
+    x = int(sys.argv[1])
+except (IndexError, ValueError):
+    sys.exit("usage: pill-at X")
+ids = subprocess.run(["xdotool", "search", "--name", "^Eww - bar$"], capture_output=True, text=True).stdout.split()
+lib = ctypes.util.find_library("X11")
+if not ids or not lib:
+    sys.exit(1)
+
+class XImage(ctypes.Structure):   # the leading fields of Xlib's XImage
+    _fields_ = [("width", ctypes.c_int), ("height", ctypes.c_int), ("xoffset", ctypes.c_int), ("format", ctypes.c_int),
+                ("data", ctypes.POINTER(ctypes.c_ubyte)), ("byte_order", ctypes.c_int), ("bitmap_unit", ctypes.c_int),
+                ("bitmap_bit_order", ctypes.c_int), ("bitmap_pad", ctypes.c_int), ("depth", ctypes.c_int),
+                ("bytes_per_line", ctypes.c_int), ("bits_per_pixel", ctypes.c_int)]
+
+X = ctypes.CDLL(lib)
+ERR = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p)
+on_error = ERR(lambda d, e: 0)   # a vanished or unmapped window: XGetImage returns NULL instead of exiting
+X.XSetErrorHandler(on_error)
+X.XOpenDisplay.restype = ctypes.c_void_p
+X.XOpenDisplay.argtypes = [ctypes.c_char_p]
+X.XDefaultRootWindow.restype = ctypes.c_ulong
+X.XDefaultRootWindow.argtypes = [ctypes.c_void_p]
+X.XGetGeometry.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.POINTER(ctypes.c_ulong)] + \
+    [ctypes.POINTER(ctypes.c_int)] * 2 + [ctypes.POINTER(ctypes.c_uint)] * 4
+X.XTranslateCoordinates.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_int, ctypes.c_int,
+                                    ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int),
+                                    ctypes.POINTER(ctypes.c_ulong)]
+X.XGetImage.restype = ctypes.POINTER(XImage)
+X.XGetImage.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_int, ctypes.c_uint, ctypes.c_uint,
+                        ctypes.c_ulong, ctypes.c_int]
+
+dpy = X.XOpenDisplay(None)
+if not dpy:
+    sys.exit(1)
+win, root = int(ids[0]), X.XDefaultRootWindow(dpy)
+r, wx, wy = ctypes.c_ulong(), ctypes.c_int(), ctypes.c_int()
+w, h, bw, depth = ctypes.c_uint(), ctypes.c_uint(), ctypes.c_uint(), ctypes.c_uint()
+if not X.XGetGeometry(dpy, win, ctypes.byref(r), ctypes.byref(wx), ctypes.byref(wy), ctypes.byref(w), ctypes.byref(h),
+                      ctypes.byref(bw), ctypes.byref(depth)) or depth.value != 32 or h.value <= ROW:
+    sys.exit(1)
+ax, ay, child = ctypes.c_int(), ctypes.c_int(), ctypes.c_ulong()
+X.XTranslateCoordinates(dpy, win, root, 0, 0, ctypes.byref(ax), ctypes.byref(ay), ctypes.byref(child))
+img = X.XGetImage(dpy, win, 0, ROW, w.value, 1, 0xFFFFFFFF, 2)   # AllPlanes, ZPixmap
+if not img or img.contents.bits_per_pixel != 32:
+    sys.exit(1)
+data, msb = img.contents.data, img.contents.byte_order == 1      # ARGB in a 32-bit pixel: alpha is the top byte
+opaque = [data[4 * i + (0 if msb else 3)] > 128 for i in range(w.value)]
+i = x - ax.value
+if not 0 <= i < len(opaque) or not opaque[i]:
+    sys.exit(1)
+a = b = i
+while a > 0 and opaque[a - 1]: a -= 1
+while b < len(opaque) - 1 and opaque[b + 1]: b += 1
+print(ax.value + a, ax.value + b)

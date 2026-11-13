@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+"""The next calendar event for the bar's date pill (defpoll calnext in bar.yuck, every 30 s), read from the cache that
+~/.local/bin/calendar-fetch writes (~/.cache/eww/calendar.json); no network. Prints {"text", "kind"}:
+  an event starting within the hour   {"text": "Standup in 12m", "kind": "near"}, "soon" from 10 minutes before
+  else one running now                {"text": "Deep work until 15:30", "kind": "now"} (shown dimmed)
+  else                                {"text": "", "kind": ""}, which hides the segment
+Same rules as polybar's scripts/calendar-next: an event starting within 10 minutes wins over a running one."""
+import datetime as dt, json, os
+cache = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "eww/calendar.json")
+try:
+    events = json.load(open(cache)).get("events", [])
+except Exception:
+    events = []
+now = dt.datetime.now().astimezone()
+def short(s, n=28): return s if len(s) <= n else s[:n - 1].rstrip() + "…"
+out = {"text": "", "kind": ""}
+try:
+    timed = sorted((e for e in events if not e.get("allday")), key=lambda e: e["start"])
+    upcoming = next((e for e in timed if dt.datetime.fromisoformat(e["start"]) > now), None)
+    ongoing = next((e for e in timed if dt.datetime.fromisoformat(e["start"]) <= now < dt.datetime.fromisoformat(e["end"])), None)
+    mins = None
+    if upcoming:
+        mins = int((dt.datetime.fromisoformat(upcoming["start"]) - now).total_seconds() // 60) + 1
+        if mins > 60: upcoming, mins = None, None
+    if upcoming and (mins <= 10 or not ongoing):
+        out = {"text": f"{short(upcoming.get('title', ''))} in {mins}m", "kind": "soon" if mins <= 10 else "near"}
+    elif ongoing:
+        end = dt.datetime.fromisoformat(ongoing["end"])
+        out = {"text": f"{short(ongoing.get('title', ''))} until {end:%H:%M}", "kind": "now"}
+except (KeyError, TypeError, ValueError):
+    pass
+print(json.dumps(out, ensure_ascii=False))

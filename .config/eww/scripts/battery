@@ -1,3 +1,3 @@
 #!/bin/sh
-# battery JSON for the eww quick-settings header (same script as the polybar battery pill)
-exec "$HOME/.config/polybar/scripts/battery" --json
+# battery JSON for the eww quick-settings header (same script as the bar's battery pill)
+exec "$(dirname "$0")/battery-watch" --json

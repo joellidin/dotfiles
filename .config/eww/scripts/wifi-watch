@@ -1,0 +1,23 @@
+#!/bin/sh
+# The bar's Wi-Fi pill (deflisten net in bar.yuck): {"state":"on|connecting|off","ssid":"..."}, printed now and again
+# whenever NetworkManager reports a change (nmcli monitor), only when it changed; never polls. Same logic as polybar's
+# scripts/wifi: the SSID comes from the kernel via iw (instant and right on this USB adapter, where NetworkManager's
+# own view lagged), and while NetworkManager connects the pill says so.
+last=""
+status() {
+  iface=$(iw dev 2>/dev/null | awk '/Interface/{print $2; exit}')
+  state=$(nmcli -t -f DEVICE,STATE device 2>/dev/null | awk -F: -v d="$iface" '$1==d{print $2; exit}')
+  ssid=$(iw dev "$iface" link 2>/dev/null | awk -F'SSID: ' '/SSID:/{print $2; exit}')
+  case "$state" in
+    connecting*) s=connecting ;;
+    *) if [ -n "$ssid" ]; then s=on; else s=off; fi ;;
+  esac
+  line=$(jq -cn --arg s "$s" --arg ssid "$ssid" '{state: $s, ssid: $ssid}')
+  [ "$line" != "$last" ] && { printf '%s\n' "$line"; last=$line; }
+}
+status
+# nmcli monitor ends when NetworkManager restarts: start it again
+while :; do
+  nmcli monitor 2>/dev/null | while read -r _; do status; done
+  sleep 1; status
+done

@@ -1,0 +1,11 @@
+#!/bin/sh
+# bar-launch: bring the top bar (eww window `bar`, ~/.config/eww/bar.yuck) up and in line with $mod+b: start the eww
+# daemon through i3 when none answers, then bar-control sync. Run by i3 (exec_always) and by
+# ~/.config/theme-mode/hooks.d/70-i3; safe to run any time. It replaced polybar-launch, which stays for a revert.
+eww="$HOME/.local/bin/eww"
+# Started by i3, the daemon belongs to the desktop session in its own process group, whoever runs this script.
+# Started directly from the theme hook it would sit in darkman.service's cgroup and the hook's process group.
+# Fallback without i3: a plain detached start. No ';' or ',' in the command: i3 splits on them.
+session_start() { i3-msg -q "exec --no-startup-id $1" 2>/dev/null || setsid -f sh -c "$1" >/dev/null 2>&1; }
+"$eww" ping >/dev/null 2>&1 || { session_start "cd $HOME && $eww daemon"; sleep 0.5; }
+exec "$HOME/.local/bin/bar-control" sync

@@ -1,0 +1,35 @@
+#!/bin/sh
+# The bar's audio pill (deflisten aud in bar.yuck): {"vol":60,"muted":false,"mic":true}, printed now and again on every
+# PipeWire sink, source or server event (pactl subscribe), only when it changed; never polls. vol and muted are the
+# default sink's, mic is true while the default source is muted. Each change is also pushed into eww's `vol` (the
+# quick-settings slider), as polybar's volume script did.
+#   audio-watch scroll up|down   the pill's scroll: unmute and change the volume by 5%, like the volume keys
+eww=${EWW:-$HOME/.local/bin/eww}
+S=@DEFAULT_AUDIO_SINK@ M=@DEFAULT_AUDIO_SOURCE@
+if [ "$1" = scroll ]; then
+  case "$2" in
+    up)   wpctl set-mute $S 0 && wpctl set-volume -l 1.0 $S 0.05+ ;;
+    down) wpctl set-mute $S 0 && wpctl set-volume $S 0.05- ;;
+  esac
+  exit 0
+fi
+last=""
+render() {
+  out=$(wpctl get-volume $S 2>/dev/null) || return
+  vol=$(printf '%s' "$out" | awk '{ print int($2 * 100 + 0.5) }')
+  case "$out" in *MUTED*) muted=true ;; *) muted=false ;; esac
+  case "$(wpctl get-volume $M 2>/dev/null)" in *MUTED*) mic=true ;; *) mic=false ;; esac
+  line="{\"vol\":$vol,\"muted\":$muted,\"mic\":$mic}"
+  [ "$line" = "$last" ] && return
+  printf '%s\n' "$line"; last=$line
+  # time-limited: an eww call that lands while the daemon reloads can lose its reply and wait for ever
+  timeout 2 "$eww" update "vol={\"vol\":$vol,\"muted\":$muted}" >/dev/null 2>&1 &
+}
+render
+# pactl subscribe ends when PipeWire's pulse server restarts: subscribe again and re-read, so the pill never freezes
+while :; do
+  pactl subscribe 2>/dev/null | while read -r ev; do
+    case "$ev" in *" on sink "*|*" on source "*|*" on server "*) render ;; esac
+  done
+  sleep 1; render
+done

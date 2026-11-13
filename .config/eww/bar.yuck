@@ -1,0 +1,93 @@
+;; ---------- the top bar: one eww window in place of polybar and the leftbar ----------
+;; `bar` is a full-width i3 dock with struts, like polybar was: i3 reserves the top 62 px and tiles below it, and a
+;; fullscreen window covers it (no need to close it). The window is transparent; .topbar insets the pills 10 px at the
+;; top and sides and 8 px at the bottom, so they sit at rows 10-53 as before.
+;; - left: workspace dots, herdr agents, keyboard flag (the leftbar's pills, unchanged)
+;; - centre: the date pill with the next calendar event
+;; - right: Wi-Fi; audio (recording, microphone, volume); system (notifications bell, battery, tray, power)
+;; The polybar-born pills keep polybar's metrics (_bar.scss), and their labels keep their spaces (:unindent false): text at 10 pt for 176 dpi (24.444 px, so a character
+;; is 14.667 px), 22 px caps and one character of padding around each module. Their data comes from listeners where
+;; polybar had them (pactl subscribe, nmcli monitor, upower --monitor); the clock and the next event poll like
+;; polybar's modules did (5 s, 30 s). Popups open aligned to their pill (scripts/toggle asks scripts/pill-at where the
+;; pill under the pointer is). Shown and hidden by ~/.local/bin/bar-control ($mod+b), started by bar-launch.
+
+(defpoll clock   :interval "5s"  :initial "" "date '+%a %e %b   %H:%M'")   ; polybar: "%date%   %time%"
+(defpoll calnext :interval "30s" :initial '{"text":"","kind":""}' "scripts/calnext")
+(deflisten aud :initial '{"vol":0,"muted":false,"mic":false}' "scripts/audio-watch")
+(deflisten net :initial '{"state":"off","ssid":""}' "scripts/wifi-watch")
+(deflisten bat :initial '{"percent":0,"status":"Unknown","ac":false,"time":"","icon":""}' "scripts/battery-watch")
+;; what ~/.local/bin/dmenurecord last wrote to /tmp/recordingicon; it also pushes each change with eww update
+(deflisten recording :initial "" "scripts/recording")
+
+(defwidget bar-w []
+  (centerbox :class "topbar"
+    (box :class "bar-left" :space-evenly false :spacing 15 :halign "start" :valign "center"
+      (ws-row :d wsdata)
+      (eventbox :cursor "pointer" :timeout "5s" :onclick "scripts/toggle agents"
+        (box :class "pill agents" :space-evenly false :spacing 18
+          (label :class "ag blocked" :visible {agentcount.blocked > 0} :text " ${agentcount.blocked}")
+          (label :class "ag done"    :visible {agentcount.done > 0}    :text " ${agentcount.done}")
+          (label :class "ag working" :visible {agentcount.working > 0} :text " ${agentcount.working}")
+          (label :class "ag none"    :visible {agentcount.blocked + agentcount.done + agentcount.working == 0} :text "")))
+      (eventbox :cursor "pointer" :timeout "5s" :onclick "scripts/kbd cycle"
+        (box :class "pill kbd" (label :class "flag" :text kbd))))
+    (box :halign "center" :valign "center" (date-pill))
+    (box :class "bar-right" :space-evenly false :spacing 14 :halign "end" :valign "center"
+      (wifi-pill)
+      (audio-pill)
+      (sys-pill))))
+
+;; calendar icon, "Fri 13 Nov   06:51", then the next event when there is one: "·  Standup in 12m" (orange from 10
+;; minutes before), or the running one, dimmed: "·  Deep work until 15:30". A click opens the calendar.
+(defwidget date-pill []
+  (eventbox :cursor "pointer" :timeout "5s" :onclick "scripts/toggle calendar"
+    (box :class "pill pb date" :space-evenly false
+      (label :class "pb-icon" :text "")
+      (label :class "pb-text" :unindent false :text "  ${clock}  ")
+      (box :class "next ${calnext.kind}" :visible {calnext.text != ""} :space-evenly false
+        (label :class "pb-text dot" :text "·")
+        (label :class "pb-text ev" :unindent false :text "  ${calnext.text}  ")))))
+
+;; SSID, "connecting" (yellow) or "off" (dim). Click: the Wi-Fi popup; right click: nm-connection-editor.
+(defwidget wifi-pill []
+  (eventbox :cursor "pointer" :timeout "5s" :onclick "scripts/toggle wifi"
+            :onrightclick "nm-connection-editor >/dev/null 2>&1 &"
+    (box :class "pill pb wifi ${net.state}" :space-evenly false
+      (label :class "pb-icon" :text "")
+      (label :class "pb-text" :unindent false :text {net.state == "connecting" ? " connecting" : net.state == "off" ? " off" : " ${net.ssid}"}))))
+
+;; recording (only while dmenurecord runs), microphone (red and crossed out when muted, a click toggles it), volume
+;; (a click mutes; scrolling unmutes and changes it by 5%, as the volume keys do)
+(defwidget audio-pill []
+  (box :class "pill pb audio" :space-evenly false
+    (box :class "seg rec" :visible {recording != ""} (label :class "rec-text" :text recording))
+    (eventbox :cursor "pointer" :timeout "3s" :onclick "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
+      (box :class "seg mic ${aud.mic ? 'muted' : ''}"
+        (label :class "pb-icon" :text {aud.mic ? "" : ""})))
+    (eventbox :cursor "pointer" :timeout "3s" :onclick "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+              :onscroll "scripts/audio-watch scroll {}"
+      (box :class "seg vol ${aud.muted ? 'muted' : ''}" :space-evenly false
+        (label :class "pb-icon" :text {aud.muted || aud.vol == 0 ? "" : aud.vol < 50 ? "" : ""})
+        (label :class "pb-text" :unindent false :text {aud.muted ? " muted" : " ${aud.vol}%"})))))
+
+;; notifications bell (the leftbar's bell pill: outlined while dunst's history is empty, the count otherwise, crossed
+;; out in the accent under do not disturb; a click opens the notification center), battery (bolt on AC, red at 15%
+;; and below; a click opens quick settings), tray (StatusNotifierItem icons; nothing while empty), power menu
+(defwidget sys-pill []
+  (box :class "pill pb sys" :space-evenly false
+    (eventbox :cursor "pointer" :timeout "5s" :onclick "scripts/toggle notify"
+      (box :class "seg bell ${notifs.dnd ? 'dnd' : ''} ${notifs.count > 0 ? 'some' : ''}" :space-evenly false :spacing 12
+        (label :class "bell-g" :text {notifs.dnd ? "" : notifs.count > 0 ? "" : ""})
+        (label :class "ncount" :visible {notifs.count > 0} :text {notifs.count})))
+    (eventbox :cursor "pointer" :timeout "5s" :onclick "scripts/toggle control"
+      (box :class "seg battery" :space-evenly false
+        (label :class "bat-icon ${bat.ac ? 'ac' : bat.percent <= 15 ? 'low' : ''}" :text {bat.icon})
+        (label :class "pb-text" :unindent false :text " ${bat.percent}%")))
+    (systray :class "tray" :space-evenly false :spacing 7 :icon-size 26 :prepend-new false)
+    (eventbox :cursor "pointer" :timeout "2s" :onclick "$HOME/.local/bin/powermenu >/dev/null 2>&1 &"
+      (box :class "seg power" (label :class "pb-icon" :text "")))))
+
+(defwindow bar :monitor 0 :stacking "fg" :windowtype "dock" :wm-ignore false
+  :reserve (struts :distance "62px" :side "top")
+  :geometry (geometry :x "0px" :y "0px" :width "100%" :height "62px" :anchor "top left")
+  (bar-w))

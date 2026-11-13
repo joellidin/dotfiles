@@ -56,8 +56,8 @@ for_window [instance="dropdown_tmuxdd"] border pixel 3
 for_window [instance="dropdown_dropdowncalc"] border pixel 2
 for_window [instance="dropdown_*"] move position center
 
-# i3bar replaced by polybar on 2026-11-08: ~/.config/polybar/config.ini, started by polybar-launch
-# (exec_always further down). The old bar block is kept commented out for an easy revert.
+# i3bar replaced by polybar on 2026-11-08, polybar by one eww bar in 2026-11 (~/.config/eww/bar.yuck, an i3 dock
+# started by bar-launch, exec_always further down). The old bar block is kept commented out for an easy revert.
 # bar {
 #         font pango:SauceCodePro Mono 10, FontAwesome 10
 #         status_command i3blocks
@@ -188,8 +188,7 @@ bindsym $mod+d                  exec --no-startup-id rofi -show run
 bindsym $mod+Ctrl+d             exec --no-startup-id rofi -show drun -show-icons
 
 
-# fullscreen toggle via bar-control: the eww left bar fades out before the window goes fullscreen and comes
-# back after it leaves (apps going fullscreen by themselves are handled by the bar-control watcher)
+# fullscreen toggle via bar-control (a plain toggle: the bar is an i3 dock, which a fullscreen window covers)
 bindsym $mod+f			exec --no-startup-id $HOME/.local/bin/bar-control fullscreen-toggle
 bindsym $mod+Shift+f		mode "$freeze" ;; exec --no-startup-id notify-send "Distraction-free mode activated." "Press Super+Shift+f to return."
 
@@ -219,7 +218,7 @@ bindsym $mod+Shift+l		move right 30
 
 # bindsym $mod+v		exec --no-startup-id $term -e $EDITOR -c "VimwikiIndex"
 
-# hide or show both top bars, polybar and the eww left bar ("bar mode toggle" only drove i3bar)
+# hide or show the top bar, the eww dock ("bar mode toggle" only drove i3bar)
 bindsym $mod+b			exec --no-startup-id $HOME/.local/bin/bar-control toggle
 # bindsym $mod+Shift+b		floating toggle; sticky toggle; exec --no-startup-id hover left
 
@@ -326,8 +325,8 @@ bindsym XF86AudioLowerVolume exec --no-startup-id wpctl set-mute @DEFAULT_AUDIO_
 bindsym XF86AudioMute        exec --no-startup-id wpctl set-mute    @DEFAULT_AUDIO_SINK@  toggle
 
 # ─────────── Audio – microphone ───────────
-# mute / un‑mute default *source* (mic) and refresh i3blocks
-bindsym XF86AudioMicMute exec --no-startup-id wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle && polybar-msg action mic hook 0
+# mute / un‑mute default *source* (mic); the bar's mic icon follows by itself (scripts/audio-watch)
+bindsym XF86AudioMicMute exec --no-startup-id wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
 
 # ─────────── Media keys (playerctl) ───────────
 bindsym XF86AudioPlay        exec --no-startup-id playerctl play-pause
@@ -351,11 +350,10 @@ exec --no-startup-id            xss-lock --transfer-sleep-lock -- $HOME/.local/b
 # Password dialogs for GUI apps that need admin rights (polkit); i3 ignores the XDG autostart entry for it
 exec --no-startup-id            /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1
 # exec_always --no-startup-id exec i3-workspace-names-daemon   # not installed; logged "not found" on every start
-exec_always --no-startup-id $HOME/.local/bin/polybar-launch
+exec_always --no-startup-id $HOME/.local/bin/bar-launch
 exec --no-startup-id $HOME/.local/bin/eww daemon
-# close the eww left bar while a fullscreen window is visible (override-redirect, so i3 cannot cover it).
-# exec, not exec_always: it is single-instance and reconnects by itself after an i3 restart
-exec --no-startup-id $HOME/.local/bin/bar-control watch
+# the low-battery notice (once at 10% on battery), apart from the bar: eww stops the bar's listeners while $mod+b hides it
+exec --no-startup-id $HOME/.config/eww/scripts/battery-watch --notify
 # YubiKey SSH keys into the OpenSSH agent once per login (passphrase on the rofi card), so herdr's background
 # connections to lidin can authenticate; one prompt if both keys share a passphrase
 exec --no-startup-id ssh-add $HOME/.ssh/id_ed25519_sk $HOME/.ssh/id_ed25519_sk_backup
