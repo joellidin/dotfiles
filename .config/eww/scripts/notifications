@@ -13,8 +13,7 @@
                            `busctl call` honours that flag (get-property activated the service in a test), so the
                            properties come from Properties.GetAll.
   notifications            print the state once
-  notifications pop ID     show history entry ID again (dunstctl history-pop); a click on a card row
-  notifications rm ID      drop entry ID from the history (dunstctl history-rm); the row's x
+  notifications rm ID      drop entry ID from the history (dunstctl history-rm); a click on a card row or its x
   notifications clear      drop the whole history (dunstctl history-clear)
 
 State: {"ok": dunst answered, "count": entries in the history, "dnd": pause level > 0 (do not disturb, as in
@@ -99,9 +98,9 @@ if cmd == ["listen"]:
     listen()
 elif cmd == ["once"]:
     print(json.dumps(state(), ensure_ascii=False, separators=(",", ":")))
-elif len(cmd) == 2 and cmd[0] in ("pop", "rm") and re.fullmatch(r"[0-9]{1,10}", cmd[1]):
-    os.execvp("dunstctl", ["dunstctl", "history-" + cmd[0], cmd[1]])
+elif len(cmd) == 2 and cmd[0] == "rm" and re.fullmatch(r"[0-9]{1,10}", cmd[1]):
+    os.execvp("dunstctl", ["dunstctl", "history-rm", cmd[1]])
 elif cmd == ["clear"]:
     os.execvp("dunstctl", ["dunstctl", "history-clear"])
 else:
-    sys.exit("usage: notifications [listen | pop ID | rm ID | clear]")
+    sys.exit("usage: notifications [listen | rm ID | clear]")

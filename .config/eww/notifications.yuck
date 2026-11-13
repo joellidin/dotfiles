@@ -3,8 +3,8 @@
 ;; is on) opens a card with that history, newest first. scripts/notifications feeds both through one deflisten that
 ;; wakes on dunst's D-Bus signals and re-reads the history (no polling). The leftbar is always open, so the listener
 ;; always runs. In the card:
-;; - a click on a row shows that notification again (dunst moves it out of the history until it closes; under do not
-;;   disturb a normal one waits, the card counts it as held), its x drops it, Clear all drops them all
+;; - a click on a row (or its x) drops that notification from the history for good, Clear all drops them all.
+;;   Nothing is shown again: a click used to history-pop it, and when that pop-up closed it was back in the list.
 ;; - the switch is scripts/dnd (pause level 50), the same state as the quick settings' "No alerts" toggle
 ;; - ages ("4 min") come from EWW_TIME, which eww only ticks while the card is open
 ;; - rows have one fixed height and the list scrolls past 6 of them (dunst keeps up to history_length = 30), so the
@@ -31,11 +31,11 @@
                : "${floor((EWW_TIME - t) / 86400)} d"}))
 
 ;; The outer eventbox has no command: it only lets the whole row (the x included) take the :hover style. The x is a
-;; sibling of the clickable part, not inside it, so removing never also re-shows.
+;; sibling of the clickable part, not inside it, so one click runs one command.
 (defwidget notif-row [n]
   (eventbox
     (box :class "notif ${n.urg}" :space-evenly false
-      (eventbox :cursor "pointer" :hexpand true :timeout "5s" :onclick "scripts/notifications pop ${n.id}"
+      (eventbox :cursor "pointer" :hexpand true :timeout "5s" :onclick "scripts/notifications rm ${n.id}"
         (box :class "nmain" :space-evenly false :spacing 16
           (box :class "status-bar" :orientation "v" (label :text ""))
           (box :orientation "v" :hexpand true :space-evenly false :spacing 2
